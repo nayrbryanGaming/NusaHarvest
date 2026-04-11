@@ -24,7 +24,7 @@ const STATS = [
   { label: 'Petani Pilot', value: '500+', icon: <Leaf size={18} className="text-emerald-400" /> },
   { label: 'Total Value Locked', value: '$200K', icon: <TrendingUp size={18} className="text-emerald-400" /> },
   { label: 'Estimasi Klaim', value: '< 6 Jam', icon: <Zap size={18} className="text-amber-400" /> },
-  { label: 'Network', value: 'Solana Devnet', icon: <Globe size={18} className="text-indigo-400" /> }
+  { label: 'Cakupan Region', value: 'Jawa Tengah', icon: <Globe size={18} className="text-indigo-400" /> }
 ]
 
 const FEATURES = [
@@ -51,7 +51,7 @@ export default function HomePage() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
           </span>
-          LIVE ON SOLANA DEVNET
+          PLATFORM AGROFI INDONESIA
         </motion.div>
 
         <motion.h1 

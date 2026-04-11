@@ -466,10 +466,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-black text-white">
-                    {connected ? 'Switch' : 'Connect'} <span className="text-emerald-400">Wallet</span>
+                    {connected ? 'Ganti' : 'Hubungkan'} <span className="text-emerald-400">Wallet</span>
                   </h3>
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Select a wallet to {connected ? 'switch to' : 'connect'}
+                    Pilih wallet untuk {connected ? 'berpindah' : 'terhubung'}
                   </p>
                 </div>
                 <button
@@ -506,14 +506,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                   >
                     <LogOut size={16} className="text-red-300" />
                     <div>
-                      <div className="text-sm text-red-200 font-black">Disconnect Wallet</div>
-                      <div className="text-[10px] text-red-200/70 font-normal">Clear active session</div>
+                      <div className="text-sm text-red-200 font-black">Putuskan Wallet</div>
+                      <div className="text-[10px] text-red-200/70 font-normal">Hapus sesi aktif</div>
                     </div>
                   </button>
                 )}
               </div>
 
-              <p className="text-[10px] text-slate-500 text-center">Wallet addresses are read directly from your extension.</p>
+              <p className="text-[10px] text-slate-500 text-center">Alamat wallet dibaca langsung dari extension browser Anda.</p>
             </motion.div>
           </div>
         )}
@@ -534,7 +534,7 @@ export function ConnectWalletButton({ className }: { className?: string }) {
   if (connecting) {
     return (
       <button disabled className={buttonClassName}>
-        Connecting...
+        Menghubungkan...
       </button>
     )
   }
@@ -543,8 +543,8 @@ export function ConnectWalletButton({ className }: { className?: string }) {
     return (
       <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
         <button onClick={selectWallet} title="Switch wallet" className={buttonClassName}>
-          <span className="hidden md:inline">Wallet Connected</span>
-          <span className="md:hidden">Connected</span>
+          <span className="hidden md:inline">Wallet Aktif</span>
+          <span className="md:hidden">Aktif</span>
           <span className="ml-2 font-mono">{shortAddress(publicKey)}</span>
         </button>
 
@@ -571,7 +571,7 @@ export function ConnectWalletButton({ className }: { className?: string }) {
 
   return (
     <button onClick={selectWallet} className={buttonClassName}>
-      Connect Wallet
+      Hubungkan Wallet
     </button>
   )
 }

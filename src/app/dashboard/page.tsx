@@ -325,7 +325,7 @@ export default function DashboardPage() {
                       {connected ? (
                         <>Beli Proteksi Sekarang <ArrowRight size={16} /></>
                       ) : (
-                        <>🔗 Connect Wallet First</>
+                        <>🔗 Hubungkan Wallet Dulu</>
                       )}
                     </span>
                   </button>
