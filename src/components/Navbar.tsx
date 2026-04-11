@@ -12,6 +12,7 @@ export default function Navbar() {
   const pathname = usePathname()
 
   const navLinks = [
+    { name: 'Home', href: '/', icon: <Globe size={14} /> },
     { name: 'Farmer Dashboard', href: '/dashboard', icon: <Leaf size={14} /> },
     { name: 'Admin Center', href: '/admin', icon: <Shield size={14} /> },
     { name: 'Yield Pools', href: '/pools', icon: <Briefcase size={14} /> },

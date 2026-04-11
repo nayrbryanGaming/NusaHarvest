@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Leaf, Shield, TrendingUp, Zap, CloudRain, BarChart3, ChevronRight, Activity, Globe } from 'lucide-react'
-import { useWallet, ConnectWalletButton } from '../providers/WalletProvider'
+import { useWallet } from '../providers/WalletProvider'
+import Navbar from '../components/Navbar'
 
 const FADE_UP: any = {
   initial: { opacity: 0, y: 30 },
@@ -40,26 +41,8 @@ export default function HomePage() {
       {/* Dynamic Background Glows */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[120px] -z-10 rounded-full" />
       <div className="absolute bottom-0 right-0 w-[600px] h-[400px] bg-teal-500/10 blur-[100px] -z-10 rounded-full" />
-      
-      {/* Navbar */}
-      <nav className="fixed top-0 w-full px-6 py-4 z-50 transition-all duration-300 backdrop-blur-md bg-[#050b14]/60 border-b border-[#1e3a2f]/40 text-slate-200">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center border border-emerald-500/30 group-hover:scale-105 transition-transform shadow-[0_0_15px_rgba(52,211,153,0.15)]">
-              <Leaf className="text-emerald-400" size={24} />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-bold tracking-tight text-white drop-shadow-md">Nusa Harvest</span>
-              <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-widest pl-0.5">AgroFi Protocol</span>
-            </div>
-          </Link>
-          <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="text-sm font-medium text-slate-300 hover:text-emerald-300 transition-colors hidden md:block">Dashboard Petani</Link>
-            <Link href="/pools" className="text-sm font-medium text-slate-300 hover:text-emerald-300 transition-colors hidden md:block">Yield Pools</Link>
-            <ConnectWalletButton className="relative px-5 py-2.5 rounded-lg text-sm font-semibold bg-[#0f2318] border border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/30 transition-all shadow-[0_0_20px_rgba(52,211,153,0.1)] hover:shadow-[0_0_30px_rgba(52,211,153,0.2)] overflow-hidden" />
-          </div>
-        </div>
-      </nav>
+
+      <Navbar />
 
       {/* Hero Section */}
       <section className="relative pt-36 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
