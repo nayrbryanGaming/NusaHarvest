@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "clean": "rimraf .next node_modules package-lock.json && npm install",
     "start": "next start",
     "lint": "next lint"
   },
@@ -12,13 +13,13 @@
     "@solana/web3.js": "^1.91.8",
     "axios": "^1.6.7",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.38.0",
+    "framer-motion": "^10.18.0",
     "lucide-react": "^0.344.0",
     "next": "14.1.3",
-    "react": "^18",
-    "react-dom": "^18",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^2.2.1"
   },
   "devDependencies": {
     "@types/node": "^20",

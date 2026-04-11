@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { WalletProvider } from '../providers/WalletProvider'
 import { Toaster } from 'react-hot-toast'
+import ClientIntegrityGuard from '../components/ClientIntegrityGuard'
 import '../styles/globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id">
       <body className={inter.className}>
+        <ClientIntegrityGuard />
         <WalletProvider>
           <Toaster
             position="top-right"
