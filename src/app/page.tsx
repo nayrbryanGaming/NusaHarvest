@@ -87,7 +87,7 @@ export default function HomePage() {
         {/* Floating Wallet Status */}
         {connected && publicKey && (
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mt-8 px-5 py-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 flex items-center gap-2 text-sm font-mono backdrop-blur-md">
-            <Activity size={16} className="animate-pulse" /> Wallet Connected: {publicKey.slice(0, 6)}...{publicKey.slice(-4)}
+            <Activity size={16} className="animate-pulse" /> Wallet Aktif: {publicKey.slice(0, 6)}...{publicKey.slice(-4)}
           </motion.div>
         )}
       </section>

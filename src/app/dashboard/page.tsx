@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Leaf, CloudRain, Shield, AlertTriangle, CheckCircle, TrendingDown, RefreshCw, Activity, ArrowRight, Sun, Wind, Droplets, Zap } from 'lucide-react'
-import { useWallet, ConnectWalletButton } from '../../providers/WalletProvider'
+import { CloudRain, Shield, AlertTriangle, CheckCircle, TrendingDown, RefreshCw, Activity, ArrowRight, Sun, Wind, Droplets, Zap } from 'lucide-react'
+import { useWallet } from '../../providers/WalletProvider'
 import toast from 'react-hot-toast'
-import Link from 'next/link'
+import Navbar from '../../components/Navbar'
 
 const DEMO_WEATHER = {
   location: { lat: -7.7078, lon: 110.6101, regionCode: 'Klaten, Jawa Tengah' },
@@ -67,19 +67,7 @@ export default function DashboardPage() {
       <div className="absolute bottom-[-20%] left-[-10%] w-[800px] h-[600px] bg-teal-800/15 blur-[120px] -z-10 rounded-full" />
       <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-blue-900/10 blur-[100px] -z-10 rounded-full" />
 
-      {/* Navbar */}
-      <nav className="fixed w-full flex items-center justify-between px-6 py-4 border-b border-emerald-900/40 z-50 backdrop-blur-xl bg-[#050b14]/70">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center border border-emerald-500/30 group-hover:scale-105 transition-transform">
-            <Leaf className="text-emerald-400" size={20} />
-          </div>
-          <div>
-            <span className="font-bold text-white tracking-tight leading-none block">Nusa Harvest</span>
-            <span className="text-[10px] text-emerald-400 uppercase tracking-widest block font-semibold">Dashboard</span>
-          </div>
-        </Link>
-        <ConnectWalletButton className="relative px-4 py-2 rounded-lg text-sm font-semibold bg-[#0f2318] border border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/30 transition-all shadow-[0_0_15px_rgba(52,211,153,0.15)]" />
-      </nav>
+      <Navbar />
 
       <div className="max-w-7xl mx-auto px-6 pt-28 pb-12">
         {/* Header Area */}

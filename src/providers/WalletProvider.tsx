@@ -542,7 +542,7 @@ export function ConnectWalletButton({ className }: { className?: string }) {
   if (connected && publicKey) {
     return (
       <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
-        <button onClick={selectWallet} title="Switch wallet" className={buttonClassName}>
+        <button onClick={selectWallet} title="Ganti wallet" className={buttonClassName}>
           <span className="hidden md:inline">Wallet Aktif</span>
           <span className="md:hidden">Aktif</span>
           <span className="ml-2 font-mono">{shortAddress(publicKey)}</span>
@@ -559,9 +559,9 @@ export function ConnectWalletButton({ className }: { className?: string }) {
 
         <button
           onClick={disconnect}
-          title="Disconnect wallet"
+          title="Putuskan wallet"
           className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-red-400 hover:bg-red-500/10 transition-all"
-          aria-label="Disconnect wallet"
+          aria-label="Putuskan wallet"
         >
           <LogOut size={14} />
         </button>
