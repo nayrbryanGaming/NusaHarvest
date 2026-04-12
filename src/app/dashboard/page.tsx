@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { CloudRain, Shield, AlertTriangle, CheckCircle, TrendingDown, RefreshCw, Activity, ArrowRight, Sun, Wind, Droplets, Zap, Loader2 } from 'lucide-react'
-import { Connection, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js'
-import { Buffer } from 'buffer'
+import { Connection } from '@solana/web3.js'
 import { useWallet } from '../../providers/WalletProvider'
 import toast from 'react-hot-toast'
 import Navbar from '../../components/Navbar'
 import { getApiUrl } from '../../utils/api'
 import { RPC_URL } from '../../utils/constants'
+import { createPolicyTransaction } from '../../utils/solana'
 
 const DEMO_WEATHER = {
   location: { lat: -7.7078, lon: 110.6101, regionCode: 'Klaten, Jawa Tengah' },
@@ -53,7 +53,6 @@ const INSURANCE_ORDER = {
 }
 
 const LOCAL_POLICY_KEY_PREFIX = 'nusa_harvest_policy_'
-const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
 
 type PurchaseMvpApiResponse = {
   success?: boolean
@@ -239,7 +238,7 @@ export default function DashboardPage() {
     if (buyingInsurance) return
 
     setBuyingInsurance(true)
-    const loadingToast = toast.loading('Memproses pembelian polis dan verifikasi on-chain...', {
+    const loadingToast = toast.loading('Menandatangani dan mengirim transaksi polis asuransi...', {
       style: { background: '#0a1628', color: '#fff', border: '1px solid #10b981' }
     })
 
@@ -250,24 +249,24 @@ export default function DashboardPage() {
       }
 
       const connection = new Connection(RPC_URL, 'confirmed')
-      const buyerPubkey = new PublicKey(publicKey)
-      const memoPayload = `NUSA_HARVEST_POLICY_PURCHASE|${publicKey}|${Date.now()}|${INSURANCE_ORDER.commoditySymbol}|${INSURANCE_ORDER.coveredHectares}`
-
-      const memoInstruction = new TransactionInstruction({
-        keys: [{ pubkey: buyerPubkey, isSigner: true, isWritable: false }],
-        programId: new PublicKey(MEMO_PROGRAM_ID),
-        data: Buffer.from(memoPayload, 'utf8')
+      const localPolicyRef = `POL-${Date.now().toString(36).toUpperCase()}`
+      const transaction = await createPolicyTransaction(publicKey, {
+        policyId: localPolicyRef,
+        commodity: INSURANCE_ORDER.commoditySymbol,
+        triggerThreshold: INSURANCE_ORDER.triggerThresholdMm,
+        payoutPerHectare: INSURANCE_ORDER.payoutPerHectareUsdc,
+        premium: INSURANCE_ORDER.displayPremiumUsdc
       })
-
-      const transaction = new Transaction().add(memoInstruction)
-      transaction.feePayer = buyerPubkey
-      const { blockhash } = await connection.getLatestBlockhash('confirmed')
-      transaction.recentBlockhash = blockhash
 
       const signedResult = await injectedProvider.signAndSendTransaction(transaction)
       const txSignature = signedResult?.signature
       if (!txSignature) {
         throw new Error('Transaksi tidak menghasilkan signature.')
+      }
+
+      const confirmation = await connection.confirmTransaction(txSignature, 'confirmed')
+      if (confirmation.value.err) {
+        throw new Error('Transaksi on-chain gagal terkonfirmasi.')
       }
 
       const purchaseUrl = getApiUrl('/api/insurance/purchase-mvp')
@@ -331,7 +330,7 @@ export default function DashboardPage() {
 
       toast.dismiss(loadingToast)
       if (backendSyncWarning) {
-        toast.success('Polis aktif on-chain. Sinkronisasi backend tertunda, tapi pembelian tidak lagi dummy.', { icon: '✅' })
+        toast.success('Transaksi on-chain berhasil. Sinkronisasi server polis sedang menyusul.', { icon: '✅' })
       } else {
         toast.success('Polis aktif on-chain dan backend tersinkron.', { icon: '🛡️' })
       }

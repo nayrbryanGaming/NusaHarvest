@@ -145,7 +145,7 @@ export default function MarketPage() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <h1 className="text-4xl font-black mb-2 italic">Commodity <span className="text-emerald-400">Price Matrix</span></h1>
-            <p className="text-slate-500 text-sm font-medium">Real-time feed dari CoinGecko, Yahoo Finance (via backend), dan oracle cuaca publik. Tidak ada fallback angka dummy.</p>
+            <p className="text-slate-500 text-sm font-medium">Real-time feed dari CoinGecko, Yahoo Finance (via backend), dan oracle cuaca publik tanpa angka statis.</p>
           </div>
           <button 
             onClick={refreshData}
