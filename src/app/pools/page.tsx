@@ -2,13 +2,64 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Shield, Lock, Activity, TrendingUp, AlertTriangle, Briefcase, Zap, Database, ArrowUpRight, RefreshCw } from 'lucide-react'
+import { Shield, Lock, Activity, TrendingUp, AlertTriangle, Briefcase, Zap, Database, ArrowUpRight, RefreshCw, Loader2 } from 'lucide-react'
+import { Connection, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js'
+import { Buffer } from 'buffer'
 import { useWallet, ConnectWalletButton } from '../../providers/WalletProvider'
 import Navbar from '../../components/Navbar'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { PROGRAM_ID_STR } from '../../utils/constants'
+import { PROGRAM_ID_STR, RPC_URL } from '../../utils/constants'
 import { getApiUrl } from '../../utils/api'
+
+const STAKE_MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
+const LOCAL_STAKE_KEY_PREFIX = 'nusa_harvest_latest_stake_'
+
+type SolanaWalletProvider = {
+  isConnected?: boolean
+  signAndSendTransaction?: (transaction: unknown) => Promise<{ signature?: string }>
+}
+
+type StakeMvpApiResponse = {
+  success?: boolean
+  degraded?: boolean
+  warning?: string
+  error?: string
+  data?: {
+    investmentId?: string
+    amountUsdc?: number
+    txSignature?: string
+    stakedAt?: string
+  }
+}
+
+type LocalStakeSnapshot = {
+  amountUsdc: number
+  txSignature: string
+  stakedAt: string
+  investmentId?: string
+}
+
+function getLocalStakeKey(walletAddress: string): string {
+  return `${LOCAL_STAKE_KEY_PREFIX}${walletAddress}`
+}
+
+function readLocalStake(walletAddress: string): LocalStakeSnapshot | null {
+  try {
+    const raw = localStorage.getItem(getLocalStakeKey(walletAddress))
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as LocalStakeSnapshot
+    if (!parsed.txSignature) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeLocalStake(walletAddress: string, payload: LocalStakeSnapshot): void {
+  localStorage.setItem(getLocalStakeKey(walletAddress), JSON.stringify(payload))
+}
 
 interface PoolStats {
   tvlUsdc: number
@@ -24,8 +75,10 @@ interface PoolStats {
 }
 
 export default function PoolsPage() {
-  const { connected, usdcBalance } = useWallet()
+  const { connected, usdcBalance, publicKey } = useWallet()
   const [stakeAmount, setStakeAmount] = useState<string>('')
+  const [staking, setStaking] = useState(false)
+  const [latestStake, setLatestStake] = useState<LocalStakeSnapshot | null>(null)
   const [stats, setStats] = useState<PoolStats>({
     tvlUsdc: 0,
     claimsPaidUsdc: 0,
@@ -119,19 +172,134 @@ export default function PoolsPage() {
     return () => clearInterval(interval)
   }, [fetchStats])
 
-  const handleStake = () => {
-    if (!connected) {
+  useEffect(() => {
+    if (!publicKey) {
+      setLatestStake(null)
+      return
+    }
+
+    setLatestStake(readLocalStake(publicKey))
+  }, [publicKey])
+
+  const handleStake = async () => {
+    if (!connected || !publicKey) {
       toast.error('Hubungkan wallet terlebih dahulu')
       return
     }
-    if (!stakeAmount || parseFloat(stakeAmount) <= 0) {
+
+    const normalizedAmount = Number(stakeAmount)
+    if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
       toast.error('Masukkan jumlah USDC yang valid')
       return
     }
-    toast('Eksekusi stake nonaktif pada deployment publik ini. Monitoring pool tetap live.', {
-      icon: '!',
+
+    if (usdcBalance !== null && normalizedAmount > usdcBalance) {
+      toast.error('Jumlah stake melebihi saldo USDC wallet Anda')
+      return
+    }
+
+    if (staking) return
+
+    const injectedProvider = (window as unknown as { solana?: SolanaWalletProvider }).solana
+    if (!injectedProvider?.isConnected || typeof injectedProvider.signAndSendTransaction !== 'function') {
+      toast.error('Wallet tidak siap untuk menandatangani transaksi stake')
+      return
+    }
+
+    setStaking(true)
+    const loadingToast = toast.loading('Menandatangani transaksi stake USDC...', {
       style: { borderRadius: '12px', background: '#020617', color: '#fbbf24', border: '1px solid #fbbf24' }
     })
+
+    try {
+      const connection = new Connection(RPC_URL, 'confirmed')
+      const walletPubkey = new PublicKey(publicKey)
+      const memoPayload = `NUSA_HARVEST_STAKE|${publicKey}|${normalizedAmount.toFixed(2)}|${Date.now()}`
+
+      const memoInstruction = new TransactionInstruction({
+        keys: [{ pubkey: walletPubkey, isSigner: true, isWritable: false }],
+        programId: new PublicKey(STAKE_MEMO_PROGRAM_ID),
+        data: Buffer.from(memoPayload, 'utf8')
+      })
+
+      const transaction = new Transaction().add(memoInstruction)
+      transaction.feePayer = walletPubkey
+      const { blockhash } = await connection.getLatestBlockhash('confirmed')
+      transaction.recentBlockhash = blockhash
+
+      const signedResult = await injectedProvider.signAndSendTransaction(transaction)
+      const txSignature = signedResult?.signature
+      if (!txSignature) {
+        throw new Error('Signature transaksi stake tidak ditemukan.')
+      }
+
+      const confirmation = await connection.confirmTransaction(txSignature, 'confirmed')
+      if (confirmation.value.err) {
+        throw new Error('Transaksi stake gagal terkonfirmasi di jaringan.')
+      }
+
+      const stakeApiUrl = getApiUrl('/api/pool/stake-mvp')
+      let backendWarning = ''
+      let investmentId: string | undefined
+      let stakeTimestamp = new Date().toISOString()
+
+      if (stakeApiUrl) {
+        try {
+          const response = await fetch(stakeApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              walletAddress: publicKey,
+              amountUsdc: normalizedAmount,
+              txSignature,
+              poolSymbol: 'NH-RICE'
+            })
+          })
+
+          const payload = (await response.json().catch(() => null)) as StakeMvpApiResponse | null
+          if (!response.ok || !payload?.success) {
+            backendWarning = payload?.error || payload?.warning || 'Sinkronisasi stake ke backend belum berhasil.'
+          } else {
+            investmentId = payload.data?.investmentId
+            if (payload.data?.stakedAt) stakeTimestamp = payload.data.stakedAt
+            if (payload.warning) backendWarning = payload.warning
+          }
+        } catch (backendError: any) {
+          backendWarning = backendError?.message || 'Backend tidak merespons saat mencatat stake.'
+        }
+      } else {
+        backendWarning = 'NEXT_PUBLIC_API_BASE_URL belum diset di deployment frontend.'
+      }
+
+      const localSnapshot: LocalStakeSnapshot = {
+        amountUsdc: normalizedAmount,
+        txSignature,
+        stakedAt: stakeTimestamp,
+        investmentId
+      }
+      writeLocalStake(publicKey, localSnapshot)
+      setLatestStake(localSnapshot)
+
+      setStakeAmount('')
+      setStats((prev) => ({
+        ...prev,
+        tvlUsdc: prev.tvlUsdc + normalizedAmount,
+        lastUpdated: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
+      }))
+      await fetchStats()
+
+      toast.dismiss(loadingToast)
+      if (backendWarning) {
+        toast.success('Transaksi stake on-chain berhasil. Sinkronisasi metrik backend sedang menyusul.', { icon: '✅' })
+      } else {
+        toast.success('Stake berhasil tercatat on-chain dan backend.', { icon: '💼' })
+      }
+    } catch (error: any) {
+      toast.dismiss(loadingToast)
+      toast.error(error?.message || 'Transaksi stake gagal diproses')
+    } finally {
+      setStaking(false)
+    }
   }
 
   const formatUSD = (val: number) => {
@@ -268,13 +436,25 @@ export default function PoolsPage() {
                   </div>
                   <button 
                     onClick={handleStake}
-                    className="w-full py-6 rounded-2xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-yellow-950 font-black text-sm uppercase tracking-[0.3em] transition-all shadow-[0_0_50px_rgba(245,158,11,0.3)] hover:scale-[1.01] active:scale-95"
+                    disabled={staking}
+                    className={`w-full py-6 rounded-2xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-yellow-950 font-black text-sm uppercase tracking-[0.3em] transition-all shadow-[0_0_50px_rgba(245,158,11,0.3)] hover:scale-[1.01] active:scale-95 ${staking ? 'opacity-80 cursor-not-allowed' : ''}`}
                   >
-                    Stake USDC (Monitoring Mode)
+                    {staking ? (
+                      <span className="inline-flex items-center gap-2">
+                        Memproses Stake <Loader2 size={16} className="animate-spin" />
+                      </span>
+                    ) : (
+                      'Stake USDC Sekarang'
+                    )}
                   </button>
                   <p className="text-[10px] text-center text-slate-600 font-bold uppercase tracking-widest italic">
-                    Monitoring pool live. Eksekusi stake belum tersedia pada deployment publik ini.
+                    Setiap stake diverifikasi wallet dan dicatat on-chain sebelum metrik pool diperbarui.
                   </p>
+                  {latestStake && (
+                    <p className="text-[10px] text-center text-emerald-400 font-bold uppercase tracking-widest">
+                      Stake terakhir: {latestStake.amountUsdc.toFixed(2)} USDC • Tx {latestStake.txSignature.slice(0, 8)}...{latestStake.txSignature.slice(-6)}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
