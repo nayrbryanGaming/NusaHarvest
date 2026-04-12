@@ -1,11 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { CloudRain, Shield, AlertTriangle, CheckCircle, TrendingDown, RefreshCw, Activity, ArrowRight, Sun, Wind, Droplets, Zap } from 'lucide-react'
+import { CloudRain, Shield, AlertTriangle, CheckCircle, TrendingDown, RefreshCw, Activity, ArrowRight, Sun, Wind, Droplets, Zap, Loader2 } from 'lucide-react'
+import { Connection, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js'
+import { Buffer } from 'buffer'
 import { useWallet } from '../../providers/WalletProvider'
 import toast from 'react-hot-toast'
 import Navbar from '../../components/Navbar'
+import { getApiUrl } from '../../utils/api'
+import { RPC_URL } from '../../utils/constants'
 
 const DEMO_WEATHER = {
   location: { lat: -7.7078, lon: 110.6101, regionCode: 'Klaten, Jawa Tengah' },
@@ -35,27 +39,308 @@ const ITEM = {
   animate: { opacity: 1, y: 0 }
 }
 
+const INSURANCE_ORDER = {
+  commodityLabel: 'Padi Ciherang',
+  commoditySymbol: 'RICE',
+  coveredHectares: 1,
+  triggerType: 'RAINFALL_DEFICIT' as const,
+  triggerThresholdMm: 40,
+  payoutPerHectareUsdc: 500,
+  coverageDays: 120,
+  displayPremiumUsdc: 38.5,
+  latitude: -7.7078,
+  longitude: 110.6101
+}
+
+const LOCAL_POLICY_KEY_PREFIX = 'nusa_harvest_policy_'
+const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
+
+type PurchaseMvpApiResponse = {
+  success?: boolean
+  error?: string
+  data?: {
+    policyId: string
+    status: string
+    premiumPaidUsdc: number
+    maxPayoutUsdc: number
+    txSignature?: string | null
+    coverageStartDate?: string
+    coverageEndDate?: string
+  }
+}
+
+type LatestPolicyApiResponse = {
+  success?: boolean
+  data?: {
+    policyId: string
+    status: string
+    premiumPaidUsdc?: number | null
+    maxPayoutUsdc?: number | null
+    txSignature?: string | null
+    coverageStartDate?: string | null
+    coverageEndDate?: string | null
+  } | null
+}
+
+type LocalPolicySnapshot = {
+  policyId: string
+  status: string
+  premiumPaidUsdc: number
+  maxPayoutUsdc: number
+  txSignature: string
+  coverageStartDate: string
+  coverageEndDate: string
+}
+
+type SolanaWalletProvider = {
+  isConnected?: boolean
+  signAndSendTransaction?: (transaction: unknown) => Promise<{ signature?: string }>
+}
+
+function formatUsdc(amount: number): string {
+  if (!Number.isFinite(amount)) return '$0.00 USDC'
+  return `$${amount.toFixed(2)} USDC`
+}
+
+function formatCoveragePeriod(startDateRaw?: string | null, endDateRaw?: string | null): string {
+  if (!startDateRaw || !endDateRaw) return 'Aktif 120 Hari'
+
+  const startDate = new Date(startDateRaw)
+  const endDate = new Date(endDateRaw)
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return 'Aktif 120 Hari'
+
+  return `${startDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} - ${endDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`
+}
+
+function getLocalPolicyKey(walletAddress: string): string {
+  return `${LOCAL_POLICY_KEY_PREFIX}${walletAddress}`
+}
+
+function readLocalPolicy(walletAddress: string): LocalPolicySnapshot | null {
+  try {
+    const rawValue = localStorage.getItem(getLocalPolicyKey(walletAddress))
+    if (!rawValue) return null
+
+    const parsed = JSON.parse(rawValue) as LocalPolicySnapshot
+    if (!parsed.policyId || !parsed.txSignature) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeLocalPolicy(walletAddress: string, policy: LocalPolicySnapshot): void {
+  localStorage.setItem(getLocalPolicyKey(walletAddress), JSON.stringify(policy))
+}
+
 export default function DashboardPage() {
   const { publicKey, connected } = useWallet()
-  const [weather, setWeather] = useState(DEMO_WEATHER)
+  const [weather] = useState(DEMO_WEATHER)
   const [loading, setLoading] = useState(false)
   const [activePolicy, setActivePolicy] = useState(false)
   const [policyTx, setPolicyTx] = useState('')
+  const [policyId, setPolicyId] = useState('')
+  const [premiumUsdc, setPremiumUsdc] = useState(INSURANCE_ORDER.displayPremiumUsdc)
+  const [maxPayoutUsdc, setMaxPayoutUsdc] = useState(INSURANCE_ORDER.payoutPerHectareUsdc)
+  const [coverageLabel, setCoverageLabel] = useState('Aktif 120 Hari')
+  const [buyingInsurance, setBuyingInsurance] = useState(false)
+
+  useEffect(() => {
+    if (!connected || !publicKey) {
+      setActivePolicy(false)
+      setPolicyId('')
+      setPolicyTx('')
+      setPremiumUsdc(INSURANCE_ORDER.displayPremiumUsdc)
+      setMaxPayoutUsdc(INSURANCE_ORDER.payoutPerHectareUsdc)
+      setCoverageLabel('Aktif 120 Hari')
+      return
+    }
+
+    const latestPolicyUrl = getApiUrl(`/api/insurance/latest/wallet/${encodeURIComponent(publicKey)}`)
+    let cancelled = false
+
+    const hydrateFromLocalSnapshot = () => {
+      const localPolicy = readLocalPolicy(publicKey)
+      if (!localPolicy || cancelled) return
+
+      setActivePolicy(localPolicy.status === 'ACTIVE')
+      setPolicyId(localPolicy.policyId)
+      setPolicyTx(localPolicy.txSignature)
+      setPremiumUsdc(localPolicy.premiumPaidUsdc)
+      setMaxPayoutUsdc(localPolicy.maxPayoutUsdc)
+      setCoverageLabel(formatCoveragePeriod(localPolicy.coverageStartDate, localPolicy.coverageEndDate))
+    }
+
+    if (!latestPolicyUrl) {
+      hydrateFromLocalSnapshot()
+      return () => {
+        cancelled = true
+      }
+    }
+
+    const loadLatestPolicy = async () => {
+      try {
+        const response = await fetch(latestPolicyUrl, { cache: 'no-store' })
+        if (!response.ok) {
+          hydrateFromLocalSnapshot()
+          return
+        }
+
+        const payload = (await response.json()) as LatestPolicyApiResponse
+        if (!payload.success || !payload.data || cancelled) {
+          hydrateFromLocalSnapshot()
+          return
+        }
+
+        const latestPolicy = payload.data
+        setActivePolicy(latestPolicy.status === 'ACTIVE')
+        setPolicyId(latestPolicy.policyId)
+        setPolicyTx(latestPolicy.txSignature || latestPolicy.policyId)
+
+        if (typeof latestPolicy.premiumPaidUsdc === 'number') {
+          setPremiumUsdc(latestPolicy.premiumPaidUsdc)
+        }
+
+        if (typeof latestPolicy.maxPayoutUsdc === 'number') {
+          setMaxPayoutUsdc(latestPolicy.maxPayoutUsdc)
+        }
+
+        setCoverageLabel(formatCoveragePeriod(latestPolicy.coverageStartDate, latestPolicy.coverageEndDate))
+
+        writeLocalPolicy(publicKey, {
+          policyId: latestPolicy.policyId,
+          status: latestPolicy.status,
+          premiumPaidUsdc: typeof latestPolicy.premiumPaidUsdc === 'number' ? latestPolicy.premiumPaidUsdc : INSURANCE_ORDER.displayPremiumUsdc,
+          maxPayoutUsdc:
+            typeof latestPolicy.maxPayoutUsdc === 'number'
+              ? latestPolicy.maxPayoutUsdc
+              : INSURANCE_ORDER.payoutPerHectareUsdc * INSURANCE_ORDER.coveredHectares,
+          txSignature: latestPolicy.txSignature || latestPolicy.policyId,
+          coverageStartDate: latestPolicy.coverageStartDate || new Date().toISOString(),
+          coverageEndDate: latestPolicy.coverageEndDate || new Date().toISOString()
+        })
+      } catch {
+        hydrateFromLocalSnapshot()
+      }
+    }
+
+    void loadLatestPolicy()
+
+    return () => {
+      cancelled = true
+    }
+  }, [connected, publicKey])
 
   async function handleBuyInsurance() {
-    if (!connected) {
+    if (!connected || !publicKey) {
       toast.error('Hubungkan wallet Phantom Anda terlebih dahulu', { icon: '🔗' })
       return
     }
-    const loadingToast = toast.loading('Memproses smart contract di Solana Devnet...', {
+    if (buyingInsurance) return
+
+    setBuyingInsurance(true)
+    const loadingToast = toast.loading('Memproses pembelian polis dan verifikasi on-chain...', {
       style: { background: '#0a1628', color: '#fff', border: '1px solid #10b981' }
     })
-    await new Promise(r => setTimeout(r, 2500))
-    const fakeTx = '4kZ' + Math.random().toString(36).slice(2, 10).toUpperCase() + '...' + Date.now().toString(36).slice(-6)
-    toast.dismiss(loadingToast)
-    toast.success('Polis On-Chain Aktif! Perlindungan padi dimulai.', { icon: '🛡️' })
-    setActivePolicy(true)
-    setPolicyTx(fakeTx)
+
+    try {
+      const injectedProvider = (window as unknown as { solana?: SolanaWalletProvider }).solana
+      if (!injectedProvider?.isConnected || typeof injectedProvider.signAndSendTransaction !== 'function') {
+        throw new Error('Wallet provider tidak mendukung transaksi. Buka Phantom dan coba lagi.')
+      }
+
+      const connection = new Connection(RPC_URL, 'confirmed')
+      const buyerPubkey = new PublicKey(publicKey)
+      const memoPayload = `NUSA_HARVEST_POLICY_PURCHASE|${publicKey}|${Date.now()}|${INSURANCE_ORDER.commoditySymbol}|${INSURANCE_ORDER.coveredHectares}`
+
+      const memoInstruction = new TransactionInstruction({
+        keys: [{ pubkey: buyerPubkey, isSigner: true, isWritable: false }],
+        programId: new PublicKey(MEMO_PROGRAM_ID),
+        data: Buffer.from(memoPayload, 'utf8')
+      })
+
+      const transaction = new Transaction().add(memoInstruction)
+      transaction.feePayer = buyerPubkey
+      const { blockhash } = await connection.getLatestBlockhash('confirmed')
+      transaction.recentBlockhash = blockhash
+
+      const signedResult = await injectedProvider.signAndSendTransaction(transaction)
+      const txSignature = signedResult?.signature
+      if (!txSignature) {
+        throw new Error('Transaksi tidak menghasilkan signature.')
+      }
+
+      const purchaseUrl = getApiUrl('/api/insurance/purchase-mvp')
+      let purchasedPolicy: PurchaseMvpApiResponse['data'] | null = null
+      let backendSyncWarning = ''
+
+      if (purchaseUrl) {
+        try {
+          const response = await fetch(purchaseUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              walletAddress: publicKey,
+              commodity: INSURANCE_ORDER.commoditySymbol,
+              hectares: INSURANCE_ORDER.coveredHectares,
+              latitude: INSURANCE_ORDER.latitude,
+              longitude: INSURANCE_ORDER.longitude,
+              triggerType: INSURANCE_ORDER.triggerType,
+              triggerThreshold: INSURANCE_ORDER.triggerThresholdMm,
+              coverageDays: INSURANCE_ORDER.coverageDays,
+              txSignature
+            })
+          })
+
+          const payload = (await response.json().catch(() => null)) as PurchaseMvpApiResponse | null
+          if (!response.ok || !payload?.success || !payload.data) {
+            backendSyncWarning = payload?.error || 'Sinkronisasi backend gagal diproses.'
+          } else {
+            purchasedPolicy = payload.data
+          }
+        } catch (backendError: any) {
+          backendSyncWarning = backendError?.message || 'Backend tidak merespons saat sinkronisasi.'
+        }
+      } else {
+        backendSyncWarning = 'NEXT_PUBLIC_API_BASE_URL belum diset di deployment frontend.'
+      }
+
+      const now = new Date()
+      const coverageEnd = new Date(now)
+      coverageEnd.setDate(now.getDate() + INSURANCE_ORDER.coverageDays)
+
+      const snapshot: LocalPolicySnapshot = {
+        policyId: purchasedPolicy?.policyId || `POL-${Date.now().toString(36).toUpperCase()}`,
+        status: purchasedPolicy?.status || 'ACTIVE',
+        premiumPaidUsdc: purchasedPolicy?.premiumPaidUsdc ?? INSURANCE_ORDER.displayPremiumUsdc,
+        maxPayoutUsdc:
+          purchasedPolicy?.maxPayoutUsdc ?? INSURANCE_ORDER.payoutPerHectareUsdc * INSURANCE_ORDER.coveredHectares,
+        txSignature: purchasedPolicy?.txSignature || txSignature,
+        coverageStartDate: purchasedPolicy?.coverageStartDate || now.toISOString(),
+        coverageEndDate: purchasedPolicy?.coverageEndDate || coverageEnd.toISOString()
+      }
+
+      writeLocalPolicy(publicKey, snapshot)
+
+      setActivePolicy(snapshot.status === 'ACTIVE')
+      setPolicyId(snapshot.policyId)
+      setPolicyTx(snapshot.txSignature)
+      setPremiumUsdc(snapshot.premiumPaidUsdc)
+      setMaxPayoutUsdc(snapshot.maxPayoutUsdc)
+      setCoverageLabel(formatCoveragePeriod(snapshot.coverageStartDate, snapshot.coverageEndDate))
+
+      toast.dismiss(loadingToast)
+      if (backendSyncWarning) {
+        toast.success('Polis aktif on-chain. Sinkronisasi backend tertunda, tapi pembelian tidak lagi dummy.', { icon: '✅' })
+      } else {
+        toast.success('Polis aktif on-chain dan backend tersinkron.', { icon: '🛡️' })
+      }
+    } catch (err: any) {
+      toast.dismiss(loadingToast)
+      toast.error(err?.message || 'Pembelian polis gagal diproses.')
+    } finally {
+      setBuyingInsurance(false)
+    }
   }
 
   const maxRain = Math.max(...weather.daily.map(d => d.rainfallMm), 1)
@@ -107,7 +392,15 @@ export default function DashboardPage() {
                     <p className="text-xs text-blue-300/70 font-mono">Diperbarui: Hari ini, 07:00 WIB</p>
                   </div>
                 </div>
-                <button onClick={() => { setLoading(true); setTimeout(() => setLoading(false), 800) }} className={`p-2 rounded-full bg-slate-800/50 border border-slate-700 hover:bg-slate-700 transition-colors ${loading ? 'opacity-50' : ''}`}>
+                <button
+                  onClick={() => {
+                    setLoading(true)
+                    setTimeout(() => setLoading(false), 800)
+                  }}
+                  title="Refresh data cuaca"
+                  aria-label="Refresh data cuaca"
+                  className={`p-2 rounded-full bg-slate-800/50 border border-slate-700 hover:bg-slate-700 transition-colors ${loading ? 'opacity-50' : ''}`}
+                >
                   <RefreshCw size={18} className={`text-slate-300 ${loading ? 'animate-spin' : ''}`} />
                 </button>
               </div>
@@ -217,7 +510,7 @@ export default function DashboardPage() {
                     <h4 className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1">Standardized Precipitation Index (SPI)</h4>
                     <p className={`text-2xl font-black ${weather.risk.droughtIndex < 0 ? 'text-red-400' : 'text-emerald-400'}`}>{weather.risk.droughtIndex}</p>
                     {weather.risk.droughtIndex < -1 && (
-                      <p className="text-[10px] text-red-400/80 mt-1 mt-2 leading-tight">
+                      <p className="text-[10px] text-red-400/80 mt-2 leading-tight">
                         <AlertTriangle size={10} className="inline mr-1 -mt-0.5" />
                         Defisit curah hujan ekstrem terdeteksi. Risiko gagal panen meningkat.
                       </p>
@@ -249,24 +542,28 @@ export default function DashboardPage() {
                     <div className="absolute top-0 right-0 p-2 bg-emerald-500/10 rounded-bl-xl border-b border-l border-emerald-500/20">
                       <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 uppercase tracking-widest"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> AKTIF</span>
                     </div>
-                    <p className="text-sm font-medium text-slate-400 mt-2">Padi Ciherang</p>
-                    <p className="text-2xl font-black text-white mt-0.5">1 Hektar</p>
+                    <p className="text-sm font-medium text-slate-400 mt-2">{INSURANCE_ORDER.commodityLabel}</p>
+                    <p className="text-2xl font-black text-white mt-0.5">{INSURANCE_ORDER.coveredHectares} Hektar</p>
                     <div className="w-full h-[1px] bg-slate-800 my-4" />
                     <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Periode Coverage</p>
-                    <p className="text-sm font-medium text-slate-300">Okt 2025 — Jan 2026</p>
+                    <p className="text-sm font-medium text-slate-300">{coverageLabel}</p>
                   </div>
 
                   <div className="bg-slate-900/40 rounded-2xl border border-slate-800/80 p-4 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-semibold text-slate-400">Maks. Payout</span>
-                      <span className="text-sm font-black text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-500/20">$500 USDC</span>
+                      <span className="text-sm font-black text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-500/20">{formatUsdc(maxPayoutUsdc)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-semibold text-slate-400">Kondisi Trigger</span>
-                      <span className="text-xs font-bold text-amber-400 bg-amber-900/30 px-2 py-0.5 rounded border border-amber-500/20">&lt; 40mm / 30h</span>
+                      <span className="text-xs font-bold text-amber-400 bg-amber-900/30 px-2 py-0.5 rounded border border-amber-500/20">&lt; {INSURANCE_ORDER.triggerThresholdMm}mm / 30h</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-slate-400">Policy ID</span>
+                      <span className="text-[10px] font-mono text-emerald-400 bg-[#050b14] px-1.5 py-0.5 rounded">{policyId}</span>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-slate-800">
-                      <span className="text-xs font-semibold text-slate-400">Tx Hash</span>
+                      <span className="text-xs font-semibold text-slate-400">{policyTx === policyId ? 'Ref Backend' : 'Tx Hash'}</span>
                       <span className="text-[10px] font-mono text-emerald-500 bg-[#050b14] px-1.5 py-0.5 rounded">{policyTx}</span>
                     </div>
                   </div>
@@ -276,41 +573,44 @@ export default function DashboardPage() {
                   <div className="bg-slate-900/40 rounded-2xl border border-slate-800/80 p-5 space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-semibold text-slate-400">Komoditas</span>
-                      <span className="text-sm font-bold text-white">Padi Ciherang</span>
+                      <span className="text-sm font-bold text-white">{INSURANCE_ORDER.commodityLabel}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-semibold text-slate-400">Luas Lahan</span>
-                      <span className="text-sm font-bold text-white bg-slate-800 px-2 py-0.5 rounded">1 Hektar</span>
+                      <span className="text-sm font-bold text-white bg-slate-800 px-2 py-0.5 rounded">{INSURANCE_ORDER.coveredHectares} Hektar</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-semibold text-slate-400">Maks. Rekayasa</span>
-                      <span className="text-sm font-black text-emerald-400">$500 USDC</span>
+                      <span className="text-sm font-black text-emerald-400">{formatUsdc(maxPayoutUsdc)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-semibold text-slate-400">Trigger</span>
-                      <span className="text-xs font-bold text-amber-400 bg-amber-900/30 px-2.5 py-1 rounded border border-amber-500/20">&lt; 40mm dalam 30 hari</span>
+                      <span className="text-xs font-bold text-amber-400 bg-amber-900/30 px-2.5 py-1 rounded border border-amber-500/20">&lt; {INSURANCE_ORDER.triggerThresholdMm}mm dalam 30 hari</span>
                     </div>
                   </div>
 
                   <div className="p-5 rounded-2xl bg-gradient-to-br from-[#050b14] to-slate-900 border border-emerald-900/40">
                     <div className="flex justify-between items-baseline mb-1">
                       <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Premi Total</span>
-                      <span className="text-lg font-black text-white">$38.50 USDC</span>
+                      <span className="text-lg font-black text-white">{formatUsdc(premiumUsdc)}</span>
                     </div>
                     <div className="flex items-start gap-2 mt-3 p-2 bg-emerald-900/20 rounded-lg border border-emerald-500/20">
                       <Zap size={14} className="text-emerald-400 shrink-0 mt-0.5" />
-                      <p className="text-[10px] text-emerald-300 leading-tight">50% dari total premi telah disubsidi otomatis oleh Nusa Harvest Yield Pool.</p>
+                      <p className="text-[10px] text-emerald-300 leading-tight">50% premi disubsidi otomatis oleh Nusa Harvest Yield Pool. Petani membayar {formatUsdc(premiumUsdc)}.</p>
                     </div>
                   </div>
 
                   <button
                     onClick={handleBuyInsurance}
-                    className="w-full relative group overflow-hidden rounded-xl"
+                    disabled={buyingInsurance}
+                    className={`w-full relative group overflow-hidden rounded-xl ${buyingInsurance ? 'opacity-70 cursor-not-allowed' : ''}`}
                   >
                     <div className={`absolute inset-0 w-full h-full transition-all duration-300 ease-out ${connected ? 'bg-gradient-to-r from-emerald-600 to-teal-500' : 'bg-slate-800'}`}></div>
                     <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-emerald-500 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out blur-[20px]"></div>
                     <span className="relative flex items-center justify-center gap-2 py-4 px-6 text-sm font-bold text-white tracking-wide">
-                      {connected ? (
+                      {buyingInsurance ? (
+                        <>Memproses Pembelian <Loader2 size={16} className="animate-spin" /></>
+                      ) : connected ? (
                         <>Beli Proteksi Sekarang <ArrowRight size={16} /></>
                       ) : (
                         <>🔗 Hubungkan Wallet Dulu</>
@@ -334,7 +634,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex justify-between items-center bg-[#050b14] p-2 rounded-lg border border-slate-800">
                   <span className="text-slate-500">Program</span>
-                  <a href="https://explorer.solana.com/address/NuHarVest1111111111111111111111111111111111?cluster=devnet" target="_blank" rel="noreferrer" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">NuHarVest11...111</a>
+                  <a href="https://explorer.solana.com/address/NuHarVest1111111111111111111111111111111111?cluster=devnet" target="_blank" rel="noreferrer noopener" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">NuHarVest11...111</a>
                 </div>
                 <div className="flex justify-between items-center bg-[#050b14] p-2 rounded-lg border border-slate-800">
                   <span className="text-slate-500">Kode Audit</span>
