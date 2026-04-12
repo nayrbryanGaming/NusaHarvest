@@ -7,9 +7,37 @@ import {
 } from '@solana/web3.js'
 import { getProgramId, RPC_URL } from './constants'
 
+let cachedProgramCheck: { checkedAt: number; deployed: boolean } | null = null
+const PROGRAM_CHECK_TTL_MS = 30_000
+
 // Anchor Discriminator for 'global:create_policy'
 // sha256("global:create_policy").slice(0, 8)
 const CREATE_POLICY_DISCRIMINATOR = Buffer.from([11, 237, 241, 203, 114, 219, 137, 245]);
+
+export async function isProtocolProgramDeployed(force = false): Promise<boolean> {
+  if (!force && cachedProgramCheck && Date.now() - cachedProgramCheck.checkedAt < PROGRAM_CHECK_TTL_MS) {
+    return cachedProgramCheck.deployed
+  }
+
+  const connection = new Connection(RPC_URL, 'confirmed')
+  const programId = getProgramId()
+  const programAccount = await connection.getAccountInfo(programId, 'confirmed')
+  const deployed = Boolean(programAccount?.executable)
+
+  cachedProgramCheck = {
+    checkedAt: Date.now(),
+    deployed
+  }
+
+  return deployed
+}
+
+export async function assertProtocolProgramDeployed(): Promise<void> {
+  const deployed = await isProtocolProgramDeployed(true)
+  if (!deployed) {
+    throw new Error('Program asuransi belum terdeploy di Solana Devnet. Transaksi dibatalkan untuk menjaga integritas data.')
+  }
+}
 
 export async function createPolicyTransaction(
   farmerPubkey: string,
@@ -21,6 +49,8 @@ export async function createPolicyTransaction(
     premium: number
   }
 ) {
+  await assertProtocolProgramDeployed()
+
   const connection = new Connection(RPC_URL, 'confirmed')
   const farmer = new PublicKey(farmerPubkey)
   const programId = getProgramId()

@@ -8,8 +8,8 @@ import { useWallet } from '../../providers/WalletProvider'
 import toast from 'react-hot-toast'
 import Navbar from '../../components/Navbar'
 import { getApiUrl } from '../../utils/api'
-import { RPC_URL } from '../../utils/constants'
-import { createPolicyTransaction } from '../../utils/solana'
+import { PROGRAM_ID_STR, RPC_URL } from '../../utils/constants'
+import { createPolicyTransaction, isProtocolProgramDeployed } from '../../utils/solana'
 
 const DEMO_WEATHER = {
   location: { lat: -7.7078, lon: 110.6101, regionCode: 'Klaten, Jawa Tengah' },
@@ -143,6 +143,26 @@ export default function DashboardPage() {
   const [maxPayoutUsdc, setMaxPayoutUsdc] = useState(INSURANCE_ORDER.payoutPerHectareUsdc)
   const [coverageLabel, setCoverageLabel] = useState('Aktif 120 Hari')
   const [buyingInsurance, setBuyingInsurance] = useState(false)
+  const [programReady, setProgramReady] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const checkProgram = async () => {
+      try {
+        const deployed = await isProtocolProgramDeployed()
+        if (!cancelled) setProgramReady(deployed)
+      } catch {
+        if (!cancelled) setProgramReady(false)
+      }
+    }
+
+    void checkProgram()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!connected || !publicKey) {
@@ -235,6 +255,17 @@ export default function DashboardPage() {
       toast.error('Hubungkan wallet Phantom Anda terlebih dahulu', { icon: '🔗' })
       return
     }
+
+    if (programReady === null) {
+      toast.error('Sedang memverifikasi status program on-chain. Coba lagi beberapa detik.')
+      return
+    }
+
+    if (programReady === false) {
+      toast.error('Program asuransi belum terdeploy di Solana Devnet. Tidak ada transaksi yang dijalankan.')
+      return
+    }
+
     if (buyingInsurance) return
 
     setBuyingInsurance(true)
@@ -601,14 +632,18 @@ export default function DashboardPage() {
 
                   <button
                     onClick={handleBuyInsurance}
-                    disabled={buyingInsurance}
-                    className={`w-full relative group overflow-hidden rounded-xl ${buyingInsurance ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    disabled={buyingInsurance || !connected || programReady !== true}
+                    className={`w-full relative group overflow-hidden rounded-xl ${buyingInsurance || programReady !== true || !connected ? 'opacity-70 cursor-not-allowed' : ''}`}
                   >
                     <div className={`absolute inset-0 w-full h-full transition-all duration-300 ease-out ${connected ? 'bg-gradient-to-r from-emerald-600 to-teal-500' : 'bg-slate-800'}`}></div>
                     <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-emerald-500 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out blur-[20px]"></div>
                     <span className="relative flex items-center justify-center gap-2 py-4 px-6 text-sm font-bold text-white tracking-wide">
                       {buyingInsurance ? (
                         <>Memproses Pembelian <Loader2 size={16} className="animate-spin" /></>
+                      ) : programReady === null ? (
+                        <>Verifikasi Program On-Chain...</>
+                      ) : programReady === false ? (
+                        <>Program Belum Live di Devnet</>
                       ) : connected ? (
                         <>Beli Proteksi Sekarang <ArrowRight size={16} /></>
                       ) : (
@@ -616,6 +651,11 @@ export default function DashboardPage() {
                       )}
                     </span>
                   </button>
+                  {programReady === false && (
+                    <p className="text-[10px] text-center text-amber-400 font-bold uppercase tracking-wider">
+                      Program belum terdeploy. Pembelian diblokir agar tidak ada data transaksi palsu.
+                    </p>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -633,11 +673,15 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex justify-between items-center bg-[#050b14] p-2 rounded-lg border border-slate-800">
                   <span className="text-slate-500">Program</span>
-                  <a href="https://explorer.solana.com/address/NuHarVest1111111111111111111111111111111111?cluster=devnet" target="_blank" rel="noreferrer noopener" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">NuHarVest11...111</a>
+                  <a href={`https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`} target="_blank" rel="noreferrer noopener" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">{PROGRAM_ID_STR.slice(0, 10)}...{PROGRAM_ID_STR.slice(-6)}</a>
                 </div>
                 <div className="flex justify-between items-center bg-[#050b14] p-2 rounded-lg border border-slate-800">
                   <span className="text-slate-500">Kode Audit</span>
                   <span className="text-slate-400">Anchor v0.30.0 / Rust</span>
+                </div>
+                <div className="flex justify-between items-center bg-[#050b14] p-2 rounded-lg border border-slate-800">
+                  <span className="text-slate-500">Status Program</span>
+                  <span className={programReady ? 'text-emerald-400' : 'text-amber-400'}>{programReady ? 'Terdeploy' : 'Belum Terdeploy'}</span>
                 </div>
               </div>
             </motion.div>

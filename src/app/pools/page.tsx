@@ -11,6 +11,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { PROGRAM_ID_STR, RPC_URL } from '../../utils/constants'
 import { getApiUrl } from '../../utils/api'
+import { isProtocolProgramDeployed } from '../../utils/solana'
 
 const STAKE_MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
 const LOCAL_STAKE_KEY_PREFIX = 'nusa_harvest_latest_stake_'
@@ -79,6 +80,7 @@ export default function PoolsPage() {
   const [stakeAmount, setStakeAmount] = useState<string>('')
   const [staking, setStaking] = useState(false)
   const [latestStake, setLatestStake] = useState<LocalStakeSnapshot | null>(null)
+  const [programReady, setProgramReady] = useState<boolean | null>(null)
   const [stats, setStats] = useState<PoolStats>({
     tvlUsdc: 0,
     claimsPaidUsdc: 0,
@@ -181,9 +183,38 @@ export default function PoolsPage() {
     setLatestStake(readLocalStake(publicKey))
   }, [publicKey])
 
+  useEffect(() => {
+    let cancelled = false
+
+    const checkProgram = async () => {
+      try {
+        const deployed = await isProtocolProgramDeployed()
+        if (!cancelled) setProgramReady(deployed)
+      } catch {
+        if (!cancelled) setProgramReady(false)
+      }
+    }
+
+    void checkProgram()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const handleStake = async () => {
     if (!connected || !publicKey) {
       toast.error('Hubungkan wallet terlebih dahulu')
+      return
+    }
+
+    if (programReady === null) {
+      toast.error('Sedang memverifikasi status program pool on-chain. Coba lagi sebentar.')
+      return
+    }
+
+    if (programReady === false) {
+      toast.error('Program pool belum terdeploy di Devnet. Stake diblokir agar tidak ada data transaksi palsu.')
       return
     }
 
@@ -290,9 +321,9 @@ export default function PoolsPage() {
 
       toast.dismiss(loadingToast)
       if (backendWarning) {
-        toast.success('Transaksi stake on-chain berhasil. Sinkronisasi metrik backend sedang menyusul.', { icon: '✅' })
+        toast.success('Transaksi wallet terkonfirmasi. Sinkronisasi metrik backend sedang menyusul.', { icon: '✅' })
       } else {
-        toast.success('Stake berhasil tercatat on-chain dan backend.', { icon: '💼' })
+        toast.success('Catatan stake tersimpan dan transaksi wallet terkonfirmasi.', { icon: '💼' })
       }
     } catch (error: any) {
       toast.dismiss(loadingToast)
@@ -436,20 +467,30 @@ export default function PoolsPage() {
                   </div>
                   <button 
                     onClick={handleStake}
-                    disabled={staking}
-                    className={`w-full py-6 rounded-2xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-yellow-950 font-black text-sm uppercase tracking-[0.3em] transition-all shadow-[0_0_50px_rgba(245,158,11,0.3)] hover:scale-[1.01] active:scale-95 ${staking ? 'opacity-80 cursor-not-allowed' : ''}`}
+                    disabled={staking || programReady !== true}
+                    className={`w-full py-6 rounded-2xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-yellow-950 font-black text-sm uppercase tracking-[0.3em] transition-all shadow-[0_0_50px_rgba(245,158,11,0.3)] hover:scale-[1.01] active:scale-95 ${staking || programReady !== true ? 'opacity-80 cursor-not-allowed' : ''}`}
                   >
                     {staking ? (
                       <span className="inline-flex items-center gap-2">
                         Memproses Stake <Loader2 size={16} className="animate-spin" />
                       </span>
+                    ) : programReady === null ? (
+                      'Verifikasi Program On-Chain...'
+                    ) : programReady === false ? (
+                      'Program Pool Belum Live'
                     ) : (
                       'Stake USDC Sekarang'
                     )}
                   </button>
-                  <p className="text-[10px] text-center text-slate-600 font-bold uppercase tracking-widest italic">
-                    Setiap stake diverifikasi wallet dan dicatat on-chain sebelum metrik pool diperbarui.
-                  </p>
+                  {programReady === false ? (
+                    <p className="text-[10px] text-center text-amber-400 font-bold uppercase tracking-widest">
+                      Program pool Devnet belum terdeploy. Stake sengaja diblokir agar tidak ada data palsu.
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-center text-slate-600 font-bold uppercase tracking-widest italic">
+                      Setiap stake memerlukan tanda tangan wallet dan verifikasi transaksi sebelum metrik diperbarui.
+                    </p>
+                  )}
                   {latestStake && (
                     <p className="text-[10px] text-center text-emerald-400 font-bold uppercase tracking-widest">
                       Stake terakhir: {latestStake.amountUsdc.toFixed(2)} USDC • Tx {latestStake.txSignature.slice(0, 8)}...{latestStake.txSignature.slice(-6)}
