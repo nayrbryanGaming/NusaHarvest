@@ -15,6 +15,7 @@ import { isProtocolProgramDeployed } from '../../utils/solana'
 
 const STAKE_MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
 const LOCAL_STAKE_KEY_PREFIX = 'nusa_harvest_latest_stake_'
+const TX_SIGNATURE_REGEX = /^[1-9A-HJ-NP-Za-km-z]{80,100}$/
 
 type SolanaWalletProvider = {
   isConnected?: boolean
@@ -45,13 +46,21 @@ function getLocalStakeKey(walletAddress: string): string {
   return `${LOCAL_STAKE_KEY_PREFIX}${walletAddress}`
 }
 
+function isLikelyTxSignature(value: string): boolean {
+  return TX_SIGNATURE_REGEX.test(value)
+}
+
+function clearLocalStake(walletAddress: string): void {
+  localStorage.removeItem(getLocalStakeKey(walletAddress))
+}
+
 function readLocalStake(walletAddress: string): LocalStakeSnapshot | null {
   try {
     const raw = localStorage.getItem(getLocalStakeKey(walletAddress))
     if (!raw) return null
 
     const parsed = JSON.parse(raw) as LocalStakeSnapshot
-    if (!parsed.txSignature) return null
+    if (!parsed.txSignature || !isLikelyTxSignature(parsed.txSignature)) return null
     return parsed
   } catch {
     return null
@@ -180,8 +189,21 @@ export default function PoolsPage() {
       return
     }
 
-    setLatestStake(readLocalStake(publicKey))
-  }, [publicKey])
+    if (programReady !== true) {
+      setLatestStake(null)
+      if (programReady === false) clearLocalStake(publicKey)
+      return
+    }
+
+    const localStake = readLocalStake(publicKey)
+    if (!localStake) {
+      clearLocalStake(publicKey)
+      setLatestStake(null)
+      return
+    }
+
+    setLatestStake(localStake)
+  }, [publicKey, programReady])
 
   useEffect(() => {
     let cancelled = false
@@ -491,7 +513,7 @@ export default function PoolsPage() {
                       Setiap stake memerlukan tanda tangan wallet dan verifikasi transaksi sebelum metrik diperbarui.
                     </p>
                   )}
-                  {latestStake && (
+                  {programReady === true && latestStake && (
                     <p className="text-[10px] text-center text-emerald-400 font-bold uppercase tracking-widest">
                       Stake terakhir: {latestStake.amountUsdc.toFixed(2)} USDC • Tx {latestStake.txSignature.slice(0, 8)}...{latestStake.txSignature.slice(-6)}
                     </p>

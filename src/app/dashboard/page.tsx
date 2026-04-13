@@ -53,6 +53,7 @@ const INSURANCE_ORDER = {
 }
 
 const LOCAL_POLICY_KEY_PREFIX = 'nusa_harvest_policy_'
+const TX_SIGNATURE_REGEX = /^[1-9A-HJ-NP-Za-km-z]{80,100}$/
 
 type PurchaseMvpApiResponse = {
   success?: boolean
@@ -115,13 +116,21 @@ function getLocalPolicyKey(walletAddress: string): string {
   return `${LOCAL_POLICY_KEY_PREFIX}${walletAddress}`
 }
 
+function isLikelyTxSignature(value: string): boolean {
+  return TX_SIGNATURE_REGEX.test(value)
+}
+
+function clearLocalPolicy(walletAddress: string): void {
+  localStorage.removeItem(getLocalPolicyKey(walletAddress))
+}
+
 function readLocalPolicy(walletAddress: string): LocalPolicySnapshot | null {
   try {
     const rawValue = localStorage.getItem(getLocalPolicyKey(walletAddress))
     if (!rawValue) return null
 
     const parsed = JSON.parse(rawValue) as LocalPolicySnapshot
-    if (!parsed.policyId || !parsed.txSignature) return null
+    if (!parsed.policyId || !parsed.txSignature || !isLikelyTxSignature(parsed.txSignature)) return null
     return parsed
   } catch {
     return null
@@ -165,7 +174,29 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
+    if (!publicKey || programReady !== false) return
+
+    clearLocalPolicy(publicKey)
+    setActivePolicy(false)
+    setPolicyId('')
+    setPolicyTx('')
+    setPremiumUsdc(INSURANCE_ORDER.displayPremiumUsdc)
+    setMaxPayoutUsdc(INSURANCE_ORDER.payoutPerHectareUsdc)
+    setCoverageLabel('Aktif 120 Hari')
+  }, [programReady, publicKey])
+
+  useEffect(() => {
     if (!connected || !publicKey) {
+      setActivePolicy(false)
+      setPolicyId('')
+      setPolicyTx('')
+      setPremiumUsdc(INSURANCE_ORDER.displayPremiumUsdc)
+      setMaxPayoutUsdc(INSURANCE_ORDER.payoutPerHectareUsdc)
+      setCoverageLabel('Aktif 120 Hari')
+      return
+    }
+
+    if (programReady !== true) {
       setActivePolicy(false)
       setPolicyId('')
       setPolicyTx('')
@@ -180,9 +211,12 @@ export default function DashboardPage() {
 
     const hydrateFromLocalSnapshot = () => {
       const localPolicy = readLocalPolicy(publicKey)
-      if (!localPolicy || cancelled) return
+      if (!localPolicy || cancelled) {
+        if (!cancelled) clearLocalPolicy(publicKey)
+        return
+      }
 
-      setActivePolicy(localPolicy.status === 'ACTIVE')
+      setActivePolicy(localPolicy.status === 'ACTIVE' && isLikelyTxSignature(localPolicy.txSignature))
       setPolicyId(localPolicy.policyId)
       setPolicyTx(localPolicy.txSignature)
       setPremiumUsdc(localPolicy.premiumPaidUsdc)
@@ -212,9 +246,12 @@ export default function DashboardPage() {
         }
 
         const latestPolicy = payload.data
-        setActivePolicy(latestPolicy.status === 'ACTIVE')
+        const txSignature = typeof latestPolicy.txSignature === 'string' ? latestPolicy.txSignature.trim() : ''
+        const validTxSignature = isLikelyTxSignature(txSignature) ? txSignature : ''
+
+        setActivePolicy(latestPolicy.status === 'ACTIVE' && Boolean(validTxSignature))
         setPolicyId(latestPolicy.policyId)
-        setPolicyTx(latestPolicy.txSignature || latestPolicy.policyId)
+        setPolicyTx(validTxSignature)
 
         if (typeof latestPolicy.premiumPaidUsdc === 'number') {
           setPremiumUsdc(latestPolicy.premiumPaidUsdc)
@@ -226,18 +263,22 @@ export default function DashboardPage() {
 
         setCoverageLabel(formatCoveragePeriod(latestPolicy.coverageStartDate, latestPolicy.coverageEndDate))
 
-        writeLocalPolicy(publicKey, {
-          policyId: latestPolicy.policyId,
-          status: latestPolicy.status,
-          premiumPaidUsdc: typeof latestPolicy.premiumPaidUsdc === 'number' ? latestPolicy.premiumPaidUsdc : INSURANCE_ORDER.displayPremiumUsdc,
-          maxPayoutUsdc:
-            typeof latestPolicy.maxPayoutUsdc === 'number'
-              ? latestPolicy.maxPayoutUsdc
-              : INSURANCE_ORDER.payoutPerHectareUsdc * INSURANCE_ORDER.coveredHectares,
-          txSignature: latestPolicy.txSignature || latestPolicy.policyId,
-          coverageStartDate: latestPolicy.coverageStartDate || new Date().toISOString(),
-          coverageEndDate: latestPolicy.coverageEndDate || new Date().toISOString()
-        })
+        if (validTxSignature) {
+          writeLocalPolicy(publicKey, {
+            policyId: latestPolicy.policyId,
+            status: latestPolicy.status,
+            premiumPaidUsdc: typeof latestPolicy.premiumPaidUsdc === 'number' ? latestPolicy.premiumPaidUsdc : INSURANCE_ORDER.displayPremiumUsdc,
+            maxPayoutUsdc:
+              typeof latestPolicy.maxPayoutUsdc === 'number'
+                ? latestPolicy.maxPayoutUsdc
+                : INSURANCE_ORDER.payoutPerHectareUsdc * INSURANCE_ORDER.coveredHectares,
+            txSignature: validTxSignature,
+            coverageStartDate: latestPolicy.coverageStartDate || new Date().toISOString(),
+            coverageEndDate: latestPolicy.coverageEndDate || new Date().toISOString()
+          })
+        } else {
+          clearLocalPolicy(publicKey)
+        }
       } catch {
         hydrateFromLocalSnapshot()
       }
@@ -248,7 +289,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [connected, publicKey])
+  }, [connected, publicKey, programReady])
 
   async function handleBuyInsurance() {
     if (!connected || !publicKey) {
@@ -593,8 +634,8 @@ export default function DashboardPage() {
                       <span className="text-[10px] font-mono text-emerald-400 bg-[#050b14] px-1.5 py-0.5 rounded">{policyId}</span>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-slate-800">
-                      <span className="text-xs font-semibold text-slate-400">{policyTx === policyId ? 'Ref Backend' : 'Tx Hash'}</span>
-                      <span className="text-[10px] font-mono text-emerald-500 bg-[#050b14] px-1.5 py-0.5 rounded">{policyTx}</span>
+                      <span className="text-xs font-semibold text-slate-400">Tx Hash</span>
+                      <span className="text-[10px] font-mono text-emerald-500 bg-[#050b14] px-1.5 py-0.5 rounded">{policyTx || '-'}</span>
                     </div>
                   </div>
                 </div>
@@ -681,7 +722,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex justify-between items-center bg-[#050b14] p-2 rounded-lg border border-slate-800">
                   <span className="text-slate-500">Status Program</span>
-                  <span className={programReady ? 'text-emerald-400' : 'text-amber-400'}>{programReady ? 'Terdeploy' : 'Belum Terdeploy'}</span>
+                  <span className={programReady === null ? 'text-slate-400' : programReady ? 'text-emerald-400' : 'text-amber-400'}>{programReady === null ? 'Verifikasi...' : programReady ? 'Terdeploy' : 'Belum Terdeploy'}</span>
                 </div>
               </div>
             </motion.div>
