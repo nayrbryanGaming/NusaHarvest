@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Leaf, Shield, TrendingUp, Zap, CloudRain, BarChart3, ChevronRight, Activity, Globe } from 'lucide-react'
 import { useWallet } from '../providers/WalletProvider'
 import Navbar from '../components/Navbar'
+import { PROGRAM_ID_STR } from '../utils/constants'
 
 const FADE_UP: any = {
   initial: { opacity: 0, y: 30 },
@@ -209,7 +210,14 @@ export default function HomePage() {
               <div className="space-y-4 font-mono text-xs text-slate-300">
                 <div className="flex justify-between bg-slate-900/50 p-3 rounded-lg border border-slate-800">
                   <span className="text-slate-500">Program ID</span>
-                  <span className="text-emerald-300">NuHarVest11...111</span>
+                  <a
+                    href={`https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-emerald-300 underline underline-offset-2 hover:text-emerald-200"
+                  >
+                    {PROGRAM_ID_STR.slice(0, 10)}...{PROGRAM_ID_STR.slice(-6)}
+                  </a>
                 </div>
                 <div className="flex justify-between bg-slate-900/50 p-3 rounded-lg border border-slate-800 shadow-inner">
                   <span className="text-slate-500">Data Source</span>
@@ -222,9 +230,14 @@ export default function HomePage() {
               </div>
               
               <div className="mt-8">
-                <button className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-semibold transition-colors border border-slate-600">
+                <a
+                  href={`https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-semibold transition-colors border border-slate-600 inline-flex items-center justify-center"
+                >
                   Lihat di Solana Explorer ↗
-                </button>
+                </a>
               </div>
             </div>
           </motion.div>

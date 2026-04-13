@@ -71,6 +71,10 @@ function writeLocalStake(walletAddress: string, payload: LocalStakeSnapshot): vo
   localStorage.setItem(getLocalStakeKey(walletAddress), JSON.stringify(payload))
 }
 
+function getExplorerTxUrl(signature: string): string {
+  return `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+}
+
 interface PoolStats {
   tvlUsdc: number
   claimsPaidUsdc: number
@@ -515,7 +519,15 @@ export default function PoolsPage() {
                   )}
                   {programReady === true && latestStake && (
                     <p className="text-[10px] text-center text-emerald-400 font-bold uppercase tracking-widest">
-                      Stake terakhir: {latestStake.amountUsdc.toFixed(2)} USDC • Tx {latestStake.txSignature.slice(0, 8)}...{latestStake.txSignature.slice(-6)}
+                      Stake terakhir: {latestStake.amountUsdc.toFixed(2)} USDC •{' '}
+                      <a
+                        href={getExplorerTxUrl(latestStake.txSignature)}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="underline underline-offset-2 hover:text-emerald-300"
+                      >
+                        Tx {latestStake.txSignature.slice(0, 8)}...{latestStake.txSignature.slice(-6)}
+                      </a>
                     </p>
                   )}
                 </div>

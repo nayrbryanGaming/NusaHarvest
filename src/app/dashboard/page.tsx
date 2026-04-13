@@ -112,6 +112,10 @@ function formatCoveragePeriod(startDateRaw?: string | null, endDateRaw?: string 
   return `${startDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} - ${endDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`
 }
 
+function getExplorerTxUrl(signature: string): string {
+  return `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+}
+
 function getLocalPolicyKey(walletAddress: string): string {
   return `${LOCAL_POLICY_KEY_PREFIX}${walletAddress}`
 }
@@ -635,7 +639,18 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-slate-800">
                       <span className="text-xs font-semibold text-slate-400">Tx Hash</span>
-                      <span className="text-[10px] font-mono text-emerald-500 bg-[#050b14] px-1.5 py-0.5 rounded">{policyTx || '-'}</span>
+                      {policyTx ? (
+                        <a
+                          href={getExplorerTxUrl(policyTx)}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="text-[10px] font-mono text-emerald-500 bg-[#050b14] px-1.5 py-0.5 rounded underline underline-offset-2 hover:text-emerald-300"
+                        >
+                          {policyTx}
+                        </a>
+                      ) : (
+                        <span className="text-[10px] font-mono text-slate-500 bg-[#050b14] px-1.5 py-0.5 rounded">-</span>
+                      )}
                     </div>
                   </div>
                 </div>
