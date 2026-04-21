@@ -1,18 +1,8 @@
 # NUSA HARVEST — AgroFi Platform
 
-**Protocol v1.0.5 — JUDICIAL VERIFICATION ACTIVE**
 
 **[LIVE DEPLOYMENT: https://nusaharvest.vercel.app/](https://nusaharvest.vercel.app/)**
 
----
-
-## JUDICIAL HANDSHAKE PROTOCOL
-This platform is enabled with **Direct Identity Synchronization** for the 25 presiding judges. 
-- **Judge 1 Wallet:** `35RXSY6u6M2bWq9sFkHjLpQ8t1vXzN4m5cK7iG4y1D3e` (Verified On-Chain)
-- **Judge 2 Wallet:** `35xzrPvS8n5L9kQ2m3J7w6V4r1t9zX5cM8vB2n4m1K9o` (Verified On-Chain)
-- ... (Total 25 Verifiable Identities)
-
----
 
 ## SECTION 1 — SYSTEM OVERVIEW
 
