@@ -1,8 +1,10 @@
 # NusaHarvest
 
-> **"Agricultural Lending, On-Chain."**
+**Agricultural Lending, On-Chain.**
 
-NusaHarvest is a DeFi yield pool lending protocol connecting global investors with Indonesian farmers — disbursed through Koperasi networks, with every fund flow recorded on-chain, secured by on-chain reserves and crop insurance, built on Solana.
+NusaHarvest is a DeFi yield pool lending protocol connecting global investors with Indonesian farmers, disbursed through Koperasi networks, with every fund flow recorded on-chain, secured by on-chain reserves and crop insurance, built on Solana.
+
+**[Live Demo: nusaharvest.vercel.app](https://nusaharvest.vercel.app)** | **[Pitch Deck](https://canva.link/gb0w1lf3mop143k)**
 
 ---
 
@@ -20,14 +22,28 @@ NusaHarvest is a DeFi yield pool lending protocol connecting global investors wi
 
 NusaHarvest provides two integrated products:
 
-1. **Yield Pool Lending** — Investors deposit USDC into commodity-specific pools (rice, coffee, palm oil). 80% of funds are disbursed as farmer loans through Koperasi networks, 20% held as an on-chain reserve buffer. Every disbursement to farmers is recorded on-chain — transparent, auditable, tamper-proof.
-2. **Crop Insurance** — Farmers can purchase parametric crop insurance directly through the platform. Required for all borrowers; also available standalone for farmers seeking protection without a loan.
+1. **Yield Pool Lending:** Investors deposit USDC into commodity-specific pools (rice, coffee, palm oil). 80% of funds are disbursed as farmer loans through Koperasi networks, 20% held as an on-chain reserve buffer. Every disbursement to farmers is recorded on-chain, publicly auditable and tamper-proof.
+2. **Crop Insurance:** Farmers can purchase parametric crop insurance directly through the platform. Required for all borrowers; also available standalone for farmers seeking protection without a loan.
 
-### How It Works
+---
+
+## Why Solana
+
+| Property | How NusaHarvest Uses It |
+|----------|------------------------|
+| Sub-cent transaction fees | Enables micro-disbursements to individual farmers at scale |
+| On-chain transparency | Every loan disbursement is publicly auditable in real time |
+| Programmable escrow | Smart contracts enforce pool rules without banks or lawyers |
+| USDC stablecoin support | Removes crypto volatility risk for farmers and investors |
+| High throughput | Supports concurrent active policies across thousands of farmers |
+
+---
+
+## How It Works
 
 ```
-Investor → Yield Pool → Koperasi → Farmer
-                ↕               ↕
+Investor -> Yield Pool -> Koperasi -> Farmer
+                |               |
         On-chain Reserve    On-chain Record
         Crop Insurance      (every disbursement)
         (required for all borrowers)
@@ -39,9 +55,9 @@ Investor → Yield Pool → Koperasi → Farmer
 
 | Layer | Mechanism | Response Time |
 |-------|-----------|---------------|
-| **Layer 1** — On-chain Reserve Fund | 20% of TVL allocated as emergency buffer | T+0, automatic |
-| **Layer 2** — Mandatory Crop Insurance | Every borrower must hold an active crop insurance policy | T+0, automatic |
-| **Layer 3** — ASKRINDO KUR Guarantee | Government-backed credit guarantee institution (Indonesia) | T+ days |
+| Layer 1: On-chain Reserve Fund | 20% of TVL allocated as emergency buffer | T+0, automatic |
+| Layer 2: Mandatory Crop Insurance | Every borrower must hold an active crop insurance policy | T+0, automatic |
+| Layer 3: ASKRINDO KUR Guarantee | Government-backed credit guarantee institution (Indonesia) | T+ days |
 
 ---
 
@@ -49,16 +65,16 @@ Investor → Yield Pool → Koperasi → Farmer
 
 | Stream | Mechanism | Rate |
 |--------|-----------|------|
-| **Protocol Fee** | Per deposit / withdrawal on yield pool | 2.5% |
-| **Insurance Admin Fee** | Per insurance policy issued | 15% of premium |
-| **On-chain Fund Yield** | Idle reserve deployed to low-risk DeFi protocols | ~5% APY |
-| **Lending Spread** | Interest on farmer loans | 6% (5% to investors, 1% to platform) |
+| Protocol Fee | Per deposit / withdrawal on yield pool | 2.5% |
+| Insurance Admin Fee | Per insurance policy issued | 15% of premium |
+| On-chain Fund Yield | Idle reserve deployed to low-risk DeFi protocols | ~5% APY |
+| Lending Spread | Interest on farmer loans | 6% (5% to investors, 1% to platform) |
 
-### Pilot Projection — Worst Case (5 Koperasi, 100 Farmers, Rice, West Java)
+### Pilot Projection: Worst Case (5 Koperasi, 100 Farmers, Rice, West Java)
 
 | Parameter | Value |
 |-----------|-------|
-| Koperasi | 5 × 20 farmers |
+| Koperasi | 5 x 20 farmers |
 | Investor pool | 70 investors x $700 = $49,000 |
 | Funds disbursed (80%) | $39,200 |
 | **Annual revenue** | **$2,173.26 / Rp 35.4 million** |
@@ -69,9 +85,20 @@ Investor → Yield Pool → Koperasi → Farmer
 
 | Segment | Value |
 |---------|-------|
-| **TAM** | Rp 571 Trillion — total agricultural, forestry & fishery credit market |
-| **SAM** | Rp 42.7 Trillion — total KUR (subsidized micro-credit) disbursed to farmers |
-| **SOM** | Rp 10 Trillion — initial addressable target market |
+| **TAM** | Rp 571 Trillion: total agricultural, forestry, and fishery credit market |
+| **SAM** | Rp 42.7 Trillion: total KUR (subsidized micro-credit) disbursed to farmers |
+| **SOM** | Rp 10 Trillion: initial addressable target market |
+
+---
+
+## What's Built
+
+| Component | Status |
+|-----------|--------|
+| Frontend (Next.js Web3 DApp) | Live at nusaharvest.vercel.app |
+| Solana smart contracts (Anchor) | In development on devnet |
+| Yield pool logic | In development |
+| Koperasi onboarding flow | In development |
 
 ---
 
@@ -90,19 +117,10 @@ Q1-Q2 2026              Q3-Q4 2026            Q4 2026+
 
 | Name | Role |
 |------|------|
-| **Raisha Al Fadhila Putri** | Digital Business — Web3 Development |
+| **Raisha Al Fadhila Putri** | Digital Business, Web3 Development |
 | **Vincentius Bryan Kwandou** | Scalable Digital Solutions |
-| **Azmi Maulana** | Infrastructure & Scaling |
-| **Evander Franklin** | Ex Digital Agency CCO — 4 Years DeFi Experience |
-
----
-
-## Links
-
-- **Live Demo:** [nusaharvest.vercel.app](https://nusaharvest.vercel.app)
-- **Pitch Deck:** [canva.link/gb0w1lf3mop143k](https://canva.link/gb0w1lf3mop143k)
-- **Blockchain:** Solana
-- **Credit Guarantee Partner:** ASKRINDO (KUR Program)
+| **Azmi Maulana** | Infrastructure and Scaling |
+| **Evander Franklin** | Ex Digital Agency CCO, 4 Years DeFi Experience |
 
 ---
 
@@ -112,8 +130,8 @@ Q1-Q2 2026              Q3-Q4 2026            Q4 2026+
 |-------|-----------|
 | Blockchain | Solana |
 | Smart Contract | Anchor Framework |
-| Frontend | Next.js — Web3 DApp |
-| Distribution | Koperasi networks — last-mile farmer onboarding |
+| Frontend | Next.js Web3 DApp |
+| Distribution | Koperasi networks (last-mile farmer onboarding) |
 
 ---
 
@@ -125,4 +143,4 @@ NusaHarvest is currently in the ideation and pilot stage. All revenue projection
 
 ---
 
-*Built for Indonesia's 73 million farmers — March 2026*
+*Built for Indonesia's 73 million farmers. March 2026*
