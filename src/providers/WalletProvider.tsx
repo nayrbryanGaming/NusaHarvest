@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
@@ -16,6 +16,7 @@ interface WalletContextType {
   connect: (providerName?: string) => Promise<void>
   disconnect: () => Promise<void>
   switchWallet: (providerName: string) => Promise<void>
+  signAndSendTransaction: (transaction: unknown) => Promise<{ signature?: string }>
   selectWallet: () => void
   refreshBalance: () => Promise<void>
   wipeAllState: () => void
@@ -33,6 +34,7 @@ type BrowserWalletProvider = {
   providers?: BrowserWalletProvider[]
   connect?: (options?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey?: PublicKey } | void>
   disconnect?: () => Promise<void>
+  signAndSendTransaction?: (transaction: unknown) => Promise<{ signature?: string }>
   on?: (event: string, handler: (...args: any[]) => void) => void
   off?: (event: string, handler: (...args: any[]) => void) => void
 }
@@ -45,6 +47,8 @@ const WALLET_OPTIONS: Array<{ id: WalletProviderName; label: string }> = [
 
 const MANUAL_DISCONNECT_KEY = 'nusa_harvest_disconnected'
 const LAST_PROVIDER_KEY = 'nusa_harvest_last_wallet'
+const LOCAL_POLICY_KEY_PREFIX = 'nusa_harvest_policy_'
+const LOCAL_STAKE_KEY_PREFIX = 'nusa_harvest_latest_stake_'
 
 const WalletContext = createContext<WalletContextType>({
   publicKey: null,
@@ -55,6 +59,7 @@ const WalletContext = createContext<WalletContextType>({
   connect: async () => {},
   disconnect: async () => {},
   switchWallet: async () => {},
+  signAndSendTransaction: async () => ({}),
   selectWallet: () => {},
   refreshBalance: async () => {},
   wipeAllState: () => {},
@@ -63,6 +68,13 @@ const WalletContext = createContext<WalletContextType>({
 function normalizeProviderName(providerName?: string): WalletProviderName {
   if (providerName === 'solflare' || providerName === 'backpack') return providerName
   return 'phantom'
+}
+
+function detectProviderName(provider: BrowserWalletProvider): WalletProviderName | null {
+  if (provider.isPhantom) return 'phantom'
+  if (provider.isSolflare) return 'solflare'
+  if (provider.isBackpack) return 'backpack'
+  return null
 }
 
 function shortAddress(address: string) {
@@ -113,6 +125,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [showModal, setShowModal] = useState(false)
   const activeProviderRef = useRef<BrowserWalletProvider | null>(null)
   const activeProviderNameRef = useRef<WalletProviderName | null>(null)
+  const isSwitchingRef = useRef(false)
 
   const getProvider = useCallback((name: WalletProviderName): BrowserWalletProvider | null => {
     const providers = listWalletProviders(window as any)
@@ -131,6 +144,52 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     return null
   }, [])
+
+  const resolveActiveProvider = useCallback((): BrowserWalletProvider | null => {
+    if (activeProviderNameRef.current) {
+      const preferredProvider = getProvider(activeProviderNameRef.current)
+      if (preferredProvider) {
+        activeProviderRef.current = preferredProvider
+        return preferredProvider
+      }
+    }
+
+    if (activeProviderRef.current) {
+      return activeProviderRef.current
+    }
+
+    const providers = listWalletProviders(window as any)
+
+    if (publicKey) {
+      const providerByAddress = providers.find((provider) => {
+        const providerAddress = readPublicKey(provider.publicKey) || readPublicKey(provider.address)
+        return provider.isConnected && providerAddress === publicKey
+      })
+
+      if (providerByAddress) {
+        activeProviderRef.current = providerByAddress
+        const providerName = detectProviderName(providerByAddress)
+        if (providerName) {
+          activeProviderNameRef.current = providerName
+          localStorage.setItem(LAST_PROVIDER_KEY, providerName)
+        }
+        return providerByAddress
+      }
+    }
+
+    const anyConnectedProvider = providers.find((provider) => provider.isConnected)
+    if (anyConnectedProvider) {
+      activeProviderRef.current = anyConnectedProvider
+      const providerName = detectProviderName(anyConnectedProvider)
+      if (providerName) {
+        activeProviderNameRef.current = providerName
+        localStorage.setItem(LAST_PROVIDER_KEY, providerName)
+      }
+      return anyConnectedProvider
+    }
+
+    return null
+  }, [getProvider, publicKey])
 
   const clearWalletState = useCallback(() => {
     setPublicKey(null)
@@ -181,8 +240,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     toast.success('Wallet balance updated')
   }, [publicKey, fetchBalance])
 
+  const signAndSendTransaction = useCallback(
+    async (transaction: unknown): Promise<{ signature?: string }> => {
+      const provider = resolveActiveProvider()
+      if (!provider?.isConnected || typeof provider.signAndSendTransaction !== 'function') {
+        throw new Error('Wallet aktif tidak siap untuk menandatangani transaksi. Hubungkan ulang wallet Anda.')
+      }
+
+      const result = await provider.signAndSendTransaction(transaction)
+      if (!result || typeof result !== 'object') {
+        throw new Error('Wallet tidak mengembalikan hasil transaksi yang valid.')
+      }
+
+      return result
+    },
+    [resolveActiveProvider]
+  )
+
   const handleProviderDisconnected = useCallback(() => {
+    if (isSwitchingRef.current) return
+
     localStorage.setItem(MANUAL_DISCONNECT_KEY, 'true')
+    localStorage.removeItem(LAST_PROVIDER_KEY)
     activeProviderRef.current = null
     activeProviderNameRef.current = null
     clearWalletState()
@@ -247,37 +326,45 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   )
 
   const disconnect = useCallback(async () => {
+    isSwitchingRef.current = false
     localStorage.setItem(MANUAL_DISCONNECT_KEY, 'true')
+    localStorage.removeItem(LAST_PROVIDER_KEY)
 
-    const installedProviders = WALLET_OPTIONS.map((wallet) => getProvider(wallet.id)).filter(Boolean) as BrowserWalletProvider[]
-    const candidates = [activeProviderRef.current, ...installedProviders].filter(Boolean) as BrowserWalletProvider[]
-    const seen = new Set<BrowserWalletProvider>()
+    const keysToClear: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key) continue
+      if (key.startsWith(LOCAL_POLICY_KEY_PREFIX) || key.startsWith(LOCAL_STAKE_KEY_PREFIX)) {
+        keysToClear.push(key)
+      }
+    }
+    keysToClear.forEach((key) => localStorage.removeItem(key))
 
-    for (const provider of candidates) {
-      if (seen.has(provider)) continue
-      seen.add(provider)
-
+    const providers = listWalletProviders(window as any)
+    for (const provider of providers) {
       try {
         if (provider.disconnect) {
-          await provider.disconnect()
+          await provider.disconnect().catch(() => {})
         }
-      } catch (error) {
-        console.warn('[WALLET] Disconnect warning:', error)
+      } catch (err) {
+        console.warn('[WALLET] Provider disconnect error:', err)
       }
     }
 
-    localStorage.removeItem(LAST_PROVIDER_KEY)
+    localStorage.setItem(MANUAL_DISCONNECT_KEY, 'true')
     activeProviderRef.current = null
-  activeProviderNameRef.current = null
+    activeProviderNameRef.current = null
     clearWalletState()
     setShowModal(false)
-    toast.success('Wallet disconnected')
-  }, [clearWalletState, getProvider])
+
+    toast.success('Wallet disconnected and sessions cleared', { icon: '🚪' })
+  }, [clearWalletState])
 
   const switchWallet = useCallback(
     async (providerName: string) => {
       const normalizedProviderName = normalizeProviderName(providerName)
       setConnecting(true)
+      isSwitchingRef.current = true
       localStorage.setItem(MANUAL_DISCONNECT_KEY, 'true')
 
       try {
@@ -313,7 +400,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
 
         activeProviderRef.current = targetProvider
-  activeProviderNameRef.current = normalizedProviderName
+        activeProviderNameRef.current = normalizedProviderName
         localStorage.setItem(LAST_PROVIDER_KEY, normalizedProviderName)
         localStorage.removeItem(MANUAL_DISCONNECT_KEY)
         setShowModal(false)
@@ -322,12 +409,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         toast.success(`Wallet switched: ${shortAddress(address)}`)
       } catch (error: any) {
         console.error('[WALLET] Switch failed:', error)
+        const fallbackProvider = resolveActiveProvider()
+        const fallbackAddress =
+          fallbackProvider && (readPublicKey(fallbackProvider.publicKey) || readPublicKey(fallbackProvider.address))
+
+        if (fallbackAddress) {
+          localStorage.removeItem(MANUAL_DISCONNECT_KEY)
+          applyConnectedAddress(fallbackAddress)
+        }
         toast.error(error?.message || 'Failed to switch wallet')
       } finally {
+        isSwitchingRef.current = false
         setConnecting(false)
       }
     },
-    [getProvider, applyConnectedAddress]
+    [getProvider, applyConnectedAddress, resolveActiveProvider]
   )
 
   const wipeAllState = useCallback(() => {
@@ -343,28 +439,65 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const providers = listWalletProviders(window as any)
 
-    const handleProviderConnected = (nextPublicKey: unknown) => {
+    const handleProviderConnected = (provider: BrowserWalletProvider) => (nextPublicKey: unknown) => {
       if (localStorage.getItem(MANUAL_DISCONNECT_KEY) === 'true') return
+      if (isSwitchingRef.current) return
+
+      if (activeProviderRef.current && provider !== activeProviderRef.current) {
+        return
+      }
+
       const nextAddress = readPublicKey(nextPublicKey)
       if (!nextAddress) return
+
+      activeProviderRef.current = provider
+      const providerName = detectProviderName(provider)
+      if (providerName) {
+        activeProviderNameRef.current = providerName
+        localStorage.setItem(LAST_PROVIDER_KEY, providerName)
+      }
+
       applyConnectedAddress(nextAddress)
     }
 
-    for (const provider of providers) {
-      provider.on?.('accountChanged', handleAccountChanged)
-      provider.on?.('accountsChanged', handleAccountChanged)
-      provider.on?.('onAccountChange', handleAccountChanged)
-      provider.on?.('disconnect', handleProviderDisconnected)
-      provider.on?.('connect', handleProviderConnected)
+    const handleProviderAccountChanged = (provider: BrowserWalletProvider) => (nextPublicKey: unknown) => {
+      if (isSwitchingRef.current) return
+      if (activeProviderRef.current && provider !== activeProviderRef.current) return
+      handleAccountChanged(nextPublicKey)
     }
 
+    const handleProviderDisconnect = (provider: BrowserWalletProvider) => () => {
+      if (isSwitchingRef.current) return
+      if (activeProviderRef.current && provider !== activeProviderRef.current) return
+      handleProviderDisconnected()
+    }
+
+    const registeredHandlers = providers.map((provider) => {
+      const accountChangedHandler = handleProviderAccountChanged(provider)
+      const disconnectHandler = handleProviderDisconnect(provider)
+      const connectHandler = handleProviderConnected(provider)
+
+      provider.on?.('accountChanged', accountChangedHandler)
+      provider.on?.('accountsChanged', accountChangedHandler)
+      provider.on?.('onAccountChange', accountChangedHandler)
+      provider.on?.('disconnect', disconnectHandler)
+      provider.on?.('connect', connectHandler)
+
+      return {
+        provider,
+        accountChangedHandler,
+        disconnectHandler,
+        connectHandler,
+      }
+    })
+
     return () => {
-      for (const provider of providers) {
-        provider.off?.('accountChanged', handleAccountChanged)
-        provider.off?.('accountsChanged', handleAccountChanged)
-        provider.off?.('onAccountChange', handleAccountChanged)
-        provider.off?.('disconnect', handleProviderDisconnected)
-        provider.off?.('connect', handleProviderConnected)
+      for (const handler of registeredHandlers) {
+        handler.provider.off?.('accountChanged', handler.accountChangedHandler)
+        handler.provider.off?.('accountsChanged', handler.accountChangedHandler)
+        handler.provider.off?.('onAccountChange', handler.accountChangedHandler)
+        handler.provider.off?.('disconnect', handler.disconnectHandler)
+        handler.provider.off?.('connect', handler.connectHandler)
       }
     }
   }, [applyConnectedAddress, handleAccountChanged, handleProviderDisconnected])
@@ -389,6 +522,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (provider.isConnected && existingAddress) {
           activeProviderRef.current = provider
           activeProviderNameRef.current = name
+          localStorage.setItem(LAST_PROVIDER_KEY, name)
           if (!cancelled) {
             applyConnectedAddress(existingAddress)
           }
@@ -408,6 +542,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           if (trustedAddress && !cancelled) {
             activeProviderRef.current = provider
             activeProviderNameRef.current = name
+            localStorage.setItem(LAST_PROVIDER_KEY, name)
             applyConnectedAddress(trustedAddress)
             return
           }
@@ -447,6 +582,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         connect,
         disconnect,
         switchWallet,
+        signAndSendTransaction,
         selectWallet: () => setShowModal(true),
         refreshBalance,
         wipeAllState,

@@ -61,8 +61,11 @@ export async function createPolicyTransaction(
     programId
   )
 
+  const regionSeed = 'JAVA' // For MVP simplification, but could be dynamic
+  const commoditySeed = (policyData.commodity.toUpperCase().includes('RICE') || policyData.commodity.toUpperCase().includes('PADI')) ? 'RICE' : 'OTHER'
+
   const [poolPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from('pool'), Buffer.from('RICE'), Buffer.from('JAVA')],
+    [Buffer.from('pool'), Buffer.from(commoditySeed), Buffer.from(regionSeed)],
     programId
   )
 

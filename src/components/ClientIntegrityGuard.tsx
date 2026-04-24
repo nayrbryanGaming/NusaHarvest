@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import toast from 'react-hot-toast'
 
-const BUILD_TAG = '2026-04-13-integrity-hotfix-2'
+const BUILD_TAG = '2026-04-14-devnet-sync-1'
 const BUILD_TAG_KEY = 'nusa_harvest_build_tag'
 const BUILD_RELOAD_GUARD_KEY = 'nusa_harvest_build_reload_guard'
 
