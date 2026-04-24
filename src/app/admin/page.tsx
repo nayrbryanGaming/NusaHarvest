@@ -55,7 +55,7 @@ function formatIdr(value: number): string {
 }
 
 function shortenAddress(value: string | null | undefined): string {
-  if (!value) return 'N/A'
+  if (!value) return '.......'
   if (value.length < 12) return value
   return `${value.slice(0, 6)}...${value.slice(-4)}`
 }
@@ -285,7 +285,7 @@ export default function AdminDashboard() {
           <div className="flex gap-3">
              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
                 <div className={`w-1.5 h-1.5 rounded-full ${stats.loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400 shadow-[0_0_10px_#10b981]'} `} /> 
-               Sync: {stats.loading ? 'Syncing...' : stats.backendConnected ? 'Backend Live' : 'Fallback'}
+               Sync: {stats.loading ? 'Verifying...' : stats.backendConnected ? 'Protocol Live' : 'Direct On-Chain'}
              </div>
              <button
                onClick={fetchLiveStats}
@@ -315,7 +315,7 @@ export default function AdminDashboard() {
               </div>
               <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">{statsRow.label}</div>
               <div className="text-2xl font-black tracking-tighter text-white">
-                {statsRow.value}
+                {statsRow.value === '...' ? 'Syncing...' : statsRow.value}
               </div>
             </motion.div>
           ))}
@@ -416,7 +416,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Last Sync</span>
-                    <span className="text-white font-bold text-xs">{stats.lastSync || '—'}</span>
+                    <span className="text-white font-bold text-xs">{stats.lastSync || 'Bebas Antri'}</span>
                   </div>
                   <Link href={`https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`} target="_blank" className="w-full py-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-all">
                     Verify On-Chain <ArrowRight size={14} />

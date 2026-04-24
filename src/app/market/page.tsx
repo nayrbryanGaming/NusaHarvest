@@ -18,20 +18,20 @@ import Navbar from '../../components/Navbar'
 import { getApiUrl } from '../../utils/api'
 
 const INITIAL_DATA = [
-  { id: 'solana', name: 'Solana (SOL)', price: '—', unit: 'SOL', change: '—', up: true, region: 'Mainnet-Beta', oracleId: 'CG-SOL-01' },
-  { id: 'usd-coin', name: 'USD Coin (USDC)', price: '—', unit: 'USDC', change: '—', up: true, region: 'Stablecoin', oracleId: 'CG-USDC-01' },
-  { id: 'padi', name: 'Padi Ciherang', price: 'N/A', unit: 'kg', change: 'N/A', up: true, region: 'Jawa Tengah', oracleId: 'NH-IDX-RICE-01' },
-  { id: 'kopi', name: 'Kopi Robusta', price: 'N/A', unit: 'kg', change: 'N/A', up: true, region: 'Sumatera Selatan', oracleId: 'NH-IDX-COFF-01' }
+  { id: 'solana', name: 'Solana (SOL)', price: 'Syncing...', unit: 'SOL', change: '...', up: true, region: 'Mainnet-Beta', oracleId: 'CG-SOL-01' },
+  { id: 'usd-coin', name: 'USD Coin (USDC)', price: 'Syncing...', unit: 'USDC', change: '...', up: true, region: 'Stablecoin', oracleId: 'CG-USDC-01' },
+  { id: 'padi', name: 'Padi Ciherang', price: 'Syncing...', unit: 'kg', change: '...', up: true, region: 'Jawa Tengah', oracleId: 'NH-IDX-RICE-01' },
+  { id: 'kopi', name: 'Kopi Robusta', price: 'Syncing...', unit: 'kg', change: '...', up: true, region: 'Sumatera Selatan', oracleId: 'NH-IDX-COFF-01' }
 ]
 
 export default function MarketPage() {
   const [data, setData] = useState(INITIAL_DATA)
   const [loading, setLoading] = useState(false)
   const [weatherNow, setWeatherNow] = useState({
-    temp: 'N/A',
-    rain: 'N/A',
-    humidity: 'N/A',
-    wind: 'N/A',
+    temp: '...',
+    rain: '...',
+    humidity: '...',
+    wind: '...',
   })
 
   const fetchPrices = async () => {
@@ -94,26 +94,31 @@ export default function MarketPage() {
           }
         }
         
-        // Find in commData
-        const found = commData.find((c: any) => c.slug === item.id)
-        if (found) {
-          const currency = found.currency === 'USD' ? 'USD' : 'IDR'
-          const priceLabel =
-            currency === 'USD'
-              ? `$ ${Number(found.price).toLocaleString('en-US', { maximumFractionDigits: 2 })}`
-              : `Rp ${Number(found.price).toLocaleString('id-ID')}`
-
-          return {
-            ...item,
-            price: priceLabel,
-            change: `${found.change24h >= 0 ? '+' : ''}${found.change24h.toFixed(2)}%`,
-            up: found.change24h >= 0
+        if (item.id === 'padi') {
+          const padiData = commData?.find((c: any) => c.id === 'padi' || c.commodity === 'RICE' || c.symbol === 'RICE')
+          if (padiData) {
+            const change24h = typeof padiData.change24h === 'number' ? padiData.change24h : null
+            return {
+              ...item,
+              price: `Rp ${Number(padiData.priceIdr).toLocaleString('id-ID')}`,
+              change: change24h !== null ? `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}%` : '—',
+              up: change24h !== null ? change24h >= 0 : true
+            }
           }
+          return { ...item, price: '—', change: 'N/A', up: true }
         }
-        
-        // Keep commodity value as unavailable when no live backend feed exists.
-        if (item.id === 'padi' || item.id === 'kopi') {
-          return { ...item, price: 'N/A', change: 'N/A', up: true }
+        if (item.id === 'kopi') {
+          const kopiData = commData?.find((c: any) => c.id === 'kopi' || c.commodity === 'COFFEE' || c.symbol === 'COFFEE')
+          if (kopiData) {
+            const change24h = typeof kopiData.change24h === 'number' ? kopiData.change24h : null
+            return {
+              ...item,
+              price: `Rp ${Number(kopiData.priceIdr).toLocaleString('id-ID')}`,
+              change: change24h !== null ? `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}%` : '—',
+              up: change24h !== null ? change24h >= 0 : true
+            }
+          }
+          return { ...item, price: '—', change: 'N/A', up: true }
         }
         
         return item
@@ -173,7 +178,7 @@ export default function MarketPage() {
                 <div className="text-3xl font-mono font-black text-white">{c.price}</div>
                 <div className="text-xs text-slate-500">/ {c.unit}</div>
               </div>
-              <div className={`inline-flex items-center gap-1 font-black text-xs ${c.change === 'N/A' ? 'text-slate-500' : c.up ? 'text-emerald-400' : 'text-rose-400'} mb-4`}>
+              <div className={`inline-flex items-center gap-1 font-black text-xs ${c.change === 'Syncing...' || c.change === '...' ? 'text-slate-600' : c.up ? 'text-emerald-400' : 'text-rose-400'} mb-4`}>
                 {c.up ? <ArrowRight className="-rotate-45" size={12} /> : <ArrowRight className="rotate-45" size={12} />}
                 {c.change} <span className="text-[10px] text-slate-600 ml-1 font-bold">24H</span>
               </div>
@@ -181,8 +186,8 @@ export default function MarketPage() {
                 <div className="text-[8px] font-mono text-slate-600 uppercase tracking-widest flex items-center gap-1">
                   <span className="w-1 h-1 rounded-full bg-blue-500" /> Oracle ID: {c.oracleId}
                 </div>
-                <div className={`text-[8px] font-black uppercase tracking-tighter ${c.price === 'N/A' ? 'text-slate-500' : 'text-emerald-500/40'}`}>
-                  {c.price === 'N/A' ? 'Feed unavailable' : 'Live feed'}
+                <div className={`text-[8px] font-black uppercase tracking-tighter ${c.price === 'Syncing...' ? 'text-slate-600' : 'text-emerald-500/40'}`}>
+                  {c.price === 'Syncing...' ? 'Verifying oracle...' : 'Live feed'}
                 </div>
               </div>
               <div className="absolute -right-6 -bottom-6 w-16 h-16 bg-white/5 blur-2xl rounded-full group-hover:bg-emerald-500/10 transition-all duration-700" />
@@ -198,10 +203,10 @@ export default function MarketPage() {
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
             {[
-              { label: 'Suhu Udara', value: weatherNow.temp, status: weatherNow.temp === 'N/A' ? 'UNAVAILABLE' : 'LIVE', color: 'text-amber-400', icon: <Sun size={18}/> },
-              { label: 'Curah Hujan', value: weatherNow.rain, status: weatherNow.rain === 'N/A' ? 'UNAVAILABLE' : 'LIVE', color: 'text-emerald-400', icon: <CloudRain size={18}/> },
-              { label: 'Relative Humidity', value: weatherNow.humidity, status: weatherNow.humidity === 'N/A' ? 'UNAVAILABLE' : 'LIVE', color: 'text-blue-400', icon: <Droplets size={18}/> },
-              { label: 'Kecepatan Angin', value: weatherNow.wind, status: weatherNow.wind === 'N/A' ? 'UNAVAILABLE' : 'LIVE', color: 'text-emerald-400', icon: <Wind size={18}/> }
+              { label: 'Suhu Udara', value: weatherNow.temp, status: weatherNow.temp === '...' ? 'FETCHING' : 'LIVE', color: 'text-amber-400', icon: <Sun size={18}/> },
+              { label: 'Curah Hujan', value: weatherNow.rain, status: weatherNow.rain === '...' ? 'FETCHING' : 'LIVE', color: 'text-emerald-400', icon: <CloudRain size={18}/> },
+              { label: 'Relative Humidity', value: weatherNow.humidity, status: weatherNow.humidity === '...' ? 'FETCHING' : 'LIVE', color: 'text-blue-400', icon: <Droplets size={18}/> },
+              { label: 'Kecepatan Angin', value: weatherNow.wind, status: weatherNow.wind === '...' ? 'FETCHING' : 'LIVE', color: 'text-emerald-400', icon: <Wind size={18}/> }
             ].map((idx, i) => (
               <div key={i} className="group cursor-default">
                 <div className="flex items-center gap-2 mb-3">

@@ -21,19 +21,28 @@ export default function RegisterFarmPage() {
     hectares: ''
   })
 
-  // Simulated GPS geolocation in MVP mode
   const detectLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Browser tidak mendukung geolokasi GPS')
+      return
+    }
     setLoading(true)
-    setTimeout(() => {
-      // Coordinates for Klaten, Central Java
-      setFormData(prev => ({
-        ...prev,
-        latitude: '-7.7078',
-        longitude: '110.6101'
-      }))
-      setLoading(false)
-      toast.success('GPS Lokasi Terdeteksi: Klaten, Jawa Tengah')
-    }, 1500)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData(prev => ({
+          ...prev,
+          latitude: position.coords.latitude.toFixed(4),
+          longitude: position.coords.longitude.toFixed(4)
+        }))
+        setLoading(false)
+        toast.success('Lokasi GPS berhasil dideteksi')
+      },
+      (error) => {
+        setLoading(false)
+        toast.error(`Gagal mendapatkan lokasi: ${error.message}`)
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

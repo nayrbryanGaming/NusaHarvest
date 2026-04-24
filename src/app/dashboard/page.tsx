@@ -11,16 +11,19 @@ import { getApiUrl } from '../../utils/api'
 import { PROGRAM_ID_STR, RPC_URL } from '../../utils/constants'
 import { createPolicyTransaction, isProtocolProgramDeployed } from '../../utils/solana'
 
-const DEMO_WEATHER = {
+const INITIAL_WEATHER = {
   location: { lat: -7.7078, lon: 110.6101, regionCode: 'Klaten, Jawa Tengah' },
-  current: { rainfallMm: 1.2, temperatureCelsius: 29.4, humidityPercent: 78, windSpeed: 12, description: 'Sebagian Berawan' },
-  daily: [
-    { date: '10/10', rainfallMm: 1.2 }, { date: '11/10', rainfallMm: 0.0 },
-    { date: '12/10', rainfallMm: 3.5 }, { date: '13/10', rainfallMm: 0.5 },
-    { date: '14/10', rainfallMm: 8.0 }, { date: '15/10', rainfallMm: 2.1 },
-    { date: '16/10', rainfallMm: 0.0 }
-  ],
-  risk: { droughtIndex: -1.4, rollingRainfall30d: 28.3, droughtRiskScore: 73.4, excessRainRiskScore: 2, overallRiskScore: 44.0, riskLevel: 'HIGH' as const }
+  current: { rainfallMm: 0, temperatureCelsius: 0, humidityPercent: 0, windSpeed: 0, description: 'Menghubungkan ke Oracle BMKG...' },
+  daily: [] as Array<{ date: string; rainfallMm: number }>,
+  risk: {
+    droughtIndex: 0,
+    rollingRainfall30d: 0,
+    droughtRiskScore: 0,
+    excessRainRiskScore: 0,
+    overallRiskScore: 0,
+    riskLevel: 'LOW' as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  },
+  lastUpdated: ''
 }
 
 const RISK_BADGES: Record<string, string> = {
@@ -92,11 +95,6 @@ type LocalPolicySnapshot = {
   coverageEndDate: string
 }
 
-type SolanaWalletProvider = {
-  isConnected?: boolean
-  signAndSendTransaction?: (transaction: unknown) => Promise<{ signature?: string }>
-}
-
 function formatUsdc(amount: number): string {
   if (!Number.isFinite(amount)) return '$0.00 USDC'
   return `$${amount.toFixed(2)} USDC`
@@ -146,9 +144,9 @@ function writeLocalPolicy(walletAddress: string, policy: LocalPolicySnapshot): v
 }
 
 export default function DashboardPage() {
-  const { publicKey, connected } = useWallet()
-  const [weather] = useState(DEMO_WEATHER)
-  const [loading, setLoading] = useState(false)
+  const { publicKey, connected, signAndSendTransaction } = useWallet()
+  const [weather, setWeather] = useState(INITIAL_WEATHER)
+  const [loading, setLoading] = useState(true)
   const [activePolicy, setActivePolicy] = useState(false)
   const [policyTx, setPolicyTx] = useState('')
   const [policyId, setPolicyId] = useState('')
@@ -157,6 +155,73 @@ export default function DashboardPage() {
   const [coverageLabel, setCoverageLabel] = useState('Aktif 120 Hari')
   const [buyingInsurance, setBuyingInsurance] = useState(false)
   const [programReady, setProgramReady] = useState<boolean | null>(null)
+
+  const fetchLiveData = async () => {
+    setLoading(true)
+    try {
+      const { lat, lon } = INITIAL_WEATHER.location
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,rain,wind_speed_10m&daily=rain_sum&timezone=auto&past_days=30&forecast_days=0`)
+
+      if (!res.ok) throw new Error('Weather API unreachable')
+      const json = await res.json()
+
+      const current = json.current
+      const dailyRain: number[] = json.daily.rain_sum || []
+      const dailyTime: string[] = json.daily.time || []
+
+      // Show last 7 days in chart, use full 30 days for rolling accumulation
+      const last7Rain = dailyRain.slice(-7)
+      const last7Time = dailyTime.slice(-7)
+      const history = last7Time.map((t: string, i: number) => ({
+        date: t.split('-').slice(1).join('/'),
+        rainfallMm: last7Rain[i] || 0
+      }))
+
+      const rolling30d = dailyRain.reduce((a: number, b: number) => a + b, 0)
+      
+      // Real-time Risk Calculation Logic
+      const droughtThreshold = 40
+      const deficit = Math.max(0, droughtThreshold - rolling30d)
+      const riskScore = Math.min(100, (deficit / droughtThreshold) * 100)
+      
+      let level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'LOW'
+      if (riskScore > 80) level = 'CRITICAL'
+      else if (riskScore > 50) level = 'HIGH'
+      else if (riskScore > 20) level = 'MEDIUM'
+
+      const updatedAt = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
+      setWeather(prev => ({
+        ...prev,
+        current: {
+          rainfallMm: current.rain,
+          temperatureCelsius: current.temperature_2m,
+          humidityPercent: current.relative_humidity_2m,
+          windSpeed: current.wind_speed_10m,
+          description: current.rain > 0 ? 'Hujan Terdeteksi' : 'Cerah / Berawan'
+        },
+        daily: history,
+        risk: {
+          droughtIndex: parseFloat((rolling30d / 50 - 1).toFixed(2)),
+          rollingRainfall30d: parseFloat(rolling30d.toFixed(1)),
+          droughtRiskScore: riskScore,
+          excessRainRiskScore: current.rain > 50 ? 90 : 5,
+          overallRiskScore: riskScore,
+          riskLevel: level
+        },
+        lastUpdated: updatedAt
+      }))
+    } catch (e) {
+      console.error('Weather fetch error:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchLiveData()
+    const interval = setInterval(fetchLiveData, 300000) // 5m refresh
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -319,11 +384,6 @@ export default function DashboardPage() {
     })
 
     try {
-      const injectedProvider = (window as unknown as { solana?: SolanaWalletProvider }).solana
-      if (!injectedProvider?.isConnected || typeof injectedProvider.signAndSendTransaction !== 'function') {
-        throw new Error('Wallet provider tidak mendukung transaksi. Buka Phantom dan coba lagi.')
-      }
-
       const connection = new Connection(RPC_URL, 'confirmed')
       const localPolicyRef = `POL-${Date.now().toString(36).toUpperCase()}`
       const transaction = await createPolicyTransaction(publicKey, {
@@ -334,7 +394,7 @@ export default function DashboardPage() {
         premium: INSURANCE_ORDER.displayPremiumUsdc
       })
 
-      const signedResult = await injectedProvider.signAndSendTransaction(transaction)
+      const signedResult = await signAndSendTransaction(transaction)
       const txSignature = signedResult?.signature
       if (!txSignature) {
         throw new Error('Transaksi tidak menghasilkan signature.')
@@ -419,6 +479,7 @@ export default function DashboardPage() {
   }
 
   const maxRain = Math.max(...weather.daily.map(d => d.rainfallMm), 1)
+  const totalRain7d = weather.daily.reduce((sum, day) => sum + day.rainfallMm, 0)
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-[#02050a]">
@@ -464,14 +525,13 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-white tracking-tight">Oracle Cuaca BMKG</h2>
-                    <p className="text-xs text-blue-300/70 font-mono">Diperbarui: Hari ini, 07:00 WIB</p>
+                    <p className="text-xs text-blue-300/70 font-mono">
+                      {weather.lastUpdated ? `Diperbarui: ${weather.lastUpdated}` : 'Memuat data...'}
+                    </p>
                   </div>
                 </div>
                 <button
-                  onClick={() => {
-                    setLoading(true)
-                    setTimeout(() => setLoading(false), 800)
-                  }}
+                  onClick={fetchLiveData}
                   title="Refresh data cuaca"
                   aria-label="Refresh data cuaca"
                   className={`p-2 rounded-full bg-slate-800/50 border border-slate-700 hover:bg-slate-700 transition-colors ${loading ? 'opacity-50' : ''}`}
@@ -508,7 +568,7 @@ export default function DashboardPage() {
               <div className="bg-[#050b14]/30 rounded-2xl p-5 border border-slate-800/40">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Histori Curah Hujan (7 Hari)</h3>
-                  <span className="text-xs text-blue-400 font-mono bg-blue-900/20 px-2 py-0.5 rounded border border-blue-800/30">Total: 15.3 mm</span>
+                  <span className="text-xs text-blue-400 font-mono bg-blue-900/20 px-2 py-0.5 rounded border border-blue-800/30">Total: {totalRain7d.toFixed(1)} mm</span>
                 </div>
                 <div className="flex items-end gap-2 h-32">
                   {weather.daily.map((d, i) => (
@@ -689,7 +749,7 @@ export default function DashboardPage() {
                   <button
                     onClick={handleBuyInsurance}
                     disabled={buyingInsurance || !connected || programReady !== true}
-                    className={`w-full relative group overflow-hidden rounded-xl ${buyingInsurance || programReady !== true || !connected ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    className={`w-full relative group overflow-hidden rounded-xl ${buyingInsurance || !connected || programReady !== true ? 'opacity-70 cursor-not-allowed' : ''}`}
                   >
                     <div className={`absolute inset-0 w-full h-full transition-all duration-300 ease-out ${connected ? 'bg-gradient-to-r from-emerald-600 to-teal-500' : 'bg-slate-800'}`}></div>
                     <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-emerald-500 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out blur-[20px]"></div>
@@ -709,7 +769,7 @@ export default function DashboardPage() {
                   </button>
                   {programReady === false && (
                     <p className="text-[10px] text-center text-amber-400 font-bold uppercase tracking-wider">
-                      Program belum terdeploy. Pembelian diblokir agar tidak ada data transaksi palsu.
+                      Program ID {PROGRAM_ID_STR.slice(0,8)}... belum executable di Devnet. Pembelian polis dikunci sampai deploy valid selesai.
                     </p>
                   )}
                 </div>

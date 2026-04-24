@@ -1,11 +1,14 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Leaf, Shield, TrendingUp, Zap, CloudRain, BarChart3, ChevronRight, Activity, Globe } from 'lucide-react'
 import { useWallet } from '../providers/WalletProvider'
 import Navbar from '../components/Navbar'
 import { PROGRAM_ID_STR } from '../utils/constants'
+import { isProtocolProgramDeployed } from '../utils/solana'
+import { getApiUrl } from '../utils/api'
 
 const FADE_UP: any = {
   initial: { opacity: 0, y: 30 },
@@ -21,11 +24,11 @@ const STAGGER: any = {
   transition: { staggerChildren: 0.2 }
 }
 
-const STATS = [
-  { label: 'Petani Pilot', value: '500+', icon: <Leaf size={18} className="text-emerald-400" /> },
-  { label: 'Total Value Locked', value: '$200K', icon: <TrendingUp size={18} className="text-emerald-400" /> },
-  { label: 'Estimasi Klaim', value: '< 6 Jam', icon: <Zap size={18} className="text-amber-400" /> },
-  { label: 'Cakupan Region', value: 'Jawa Tengah', icon: <Globe size={18} className="text-indigo-400" /> }
+const STAT_ICONS = [
+  <Leaf size={18} className="text-emerald-400" key="leaf" />,
+  <TrendingUp size={18} className="text-emerald-400" key="trend" />,
+  <Zap size={18} className="text-amber-400" key="zap" />,
+  <Globe size={18} className="text-indigo-400" key="globe" />,
 ]
 
 const FEATURES = [
@@ -34,8 +37,73 @@ const FEATURES = [
   { step: '03', icon: <Zap className="text-amber-400" size={32} />, title: 'Payout Instan USDC', desc: 'Dana asuransi langsung cair ke dompet koperasi dalam hitungan jam setelah trigger terpenuhi.', gradient: 'from-amber-600/20 to-amber-900/20' }
 ]
 
+type LiveStats = {
+  farmerCount: string
+  tvl: string
+  networkStatus: string
+}
+
 export default function HomePage() {
   const { publicKey, connected } = useWallet()
+  const [programReady, setProgramReady] = useState<boolean | null>(null)
+  const [liveStats, setLiveStats] = useState<LiveStats>({
+    farmerCount: '...', tvl: '...', networkStatus: '...'
+  })
+
+  useEffect(() => {
+    let cancelled = false
+
+    const checkProgram = async () => {
+      try {
+        const deployed = await isProtocolProgramDeployed()
+        if (!cancelled) setProgramReady(deployed)
+      } catch {
+        if (!cancelled) setProgramReady(false)
+      }
+    }
+
+    void checkProgram()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchStats = async () => {
+      const metricsUrl = getApiUrl('/api/pool/metrics')
+      if (!metricsUrl) {
+        if (!cancelled) setLiveStats({ farmerCount: '0', tvl: '$0.00', networkStatus: 'Devnet' })
+        return
+      }
+      try {
+        const res = await fetch(metricsUrl)
+        if (!res.ok) throw new Error('metrics unavailable')
+        const payload = await res.json()
+        if (!payload?.success || !payload?.data) throw new Error('no data')
+        const data = payload.data
+        const activePolicies: number = data.insurance?.activePolicies ?? 0
+        const tvlUsdc: number = data.finance?.totalTvlUsdc ?? 0
+        if (!cancelled) {
+          setLiveStats({
+            farmerCount: activePolicies > 0 ? `${activePolicies}` : '0',
+            tvl: `$${tvlUsdc.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            networkStatus: 'Active'
+          })
+        }
+      } catch {
+        if (!cancelled) setLiveStats({ farmerCount: '0', tvl: '$0.00', networkStatus: 'Devnet' })
+      }
+    }
+
+    void fetchStats()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <main className="min-h-screen relative overflow-hidden">
@@ -95,20 +163,25 @@ export default function HomePage() {
 
       {/* Stats Matrix Section */}
       <section className="relative z-10 max-w-7xl mx-auto px-6 pb-24">
-        <motion.div 
+        <motion.div
           variants={STAGGER}
           initial="initial"
           whileInView="whileInView"
           className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
         >
-          {STATS.map((stat, i) => (
-            <motion.div 
+          {[
+            { label: 'Active Policies', value: liveStats.farmerCount },
+            { label: 'Total Value Locked', value: liveStats.tvl },
+            { label: 'Avg. Settlement', value: '< 2 Jam' },
+            { label: 'Network', value: liveStats.networkStatus }
+          ].map((stat, i) => (
+            <motion.div
               key={stat.label}
               variants={FADE_UP}
               className="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center group hover:border-emerald-500/40 transition-colors"
             >
               <div className="w-12 h-12 rounded-full bg-slate-800/50 flex items-center justify-center mb-4 border border-slate-700/50 group-hover:scale-110 transition-transform">
-                {stat.icon}
+                {STAT_ICONS[i]}
               </div>
               <h3 className="text-2xl md:text-3xl font-black text-white mb-1 drop-shadow-md">{stat.value}</h3>
               <p className="text-xs md:text-sm text-slate-400 font-medium">{stat.label}</p>
@@ -197,13 +270,19 @@ export default function HomePage() {
                 <div>
                   <h3 className="text-slate-400 text-sm font-medium mb-1">Status Smart Contract</h3>
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="text-white font-semibold">Aktif di Devnet</span>
+                    <span
+                      className={`w-2 h-2 rounded-full ${programReady === null ? 'bg-slate-500' : programReady ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}
+                    ></span>
+                    <span className="text-white font-semibold">
+                      {programReady === null ? 'Memeriksa status on-chain...' : programReady ? 'Terdeploy di Devnet' : 'Belum terdeploy di Devnet'}
+                    </span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <h3 className="text-slate-400 text-sm font-medium mb-1">Total Transaksi</h3>
-                  <span className="text-emerald-400 font-mono font-bold text-lg">1,248</span>
+                  <h3 className="text-slate-400 text-sm font-medium mb-1">Verifikasi On-Chain</h3>
+                  <span className={`font-mono font-bold text-lg ${programReady === true ? 'text-emerald-400' : programReady === false ? 'text-amber-400' : 'text-slate-400'}`}>
+                    {programReady === null ? 'CHECKING' : programReady ? 'EXECUTABLE' : 'NOT FOUND'}
+                  </span>
                 </div>
               </div>
               

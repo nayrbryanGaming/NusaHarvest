@@ -17,11 +17,6 @@ const STAKE_MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
 const LOCAL_STAKE_KEY_PREFIX = 'nusa_harvest_latest_stake_'
 const TX_SIGNATURE_REGEX = /^[1-9A-HJ-NP-Za-km-z]{80,100}$/
 
-type SolanaWalletProvider = {
-  isConnected?: boolean
-  signAndSendTransaction?: (transaction: unknown) => Promise<{ signature?: string }>
-}
-
 type StakeMvpApiResponse = {
   success?: boolean
   degraded?: boolean
@@ -89,7 +84,7 @@ interface PoolStats {
 }
 
 export default function PoolsPage() {
-  const { connected, usdcBalance, publicKey } = useWallet()
+  const { connected, usdcBalance, publicKey, signAndSendTransaction } = useWallet()
   const [stakeAmount, setStakeAmount] = useState<string>('')
   const [staking, setStaking] = useState(false)
   const [latestStake, setLatestStake] = useState<LocalStakeSnapshot | null>(null)
@@ -98,8 +93,8 @@ export default function PoolsPage() {
     tvlUsdc: 0,
     claimsPaidUsdc: 0,
     activePolicies: 0,
-    defaultRate: '—',
-    oracleLatency: '—',
+    defaultRate: '0.00%',
+    oracleLatency: '0ms',
     solPriceIdr: null,
     avgApy: null,
     backendConnected: false,
@@ -158,10 +153,11 @@ export default function PoolsPage() {
       ])
 
       const lamports = typeof rpcData?.result?.value === 'number' ? rpcData.result.value : 0
-      const solOnProgram = lamports / 1e9
+      const solBalance = lamports / 1e9
       const solPriceUsd = typeof cgData?.solana?.usd === 'number' ? cgData.solana.usd : 0
       const solPriceIdr = typeof cgData?.solana?.idr === 'number' ? cgData.solana.idr : null
-      const tvlUsd = solOnProgram * solPriceUsd
+
+      const tvlUsd = solBalance * solPriceUsd
 
       setStats({
         tvlUsdc: tvlUsd,
@@ -240,7 +236,7 @@ export default function PoolsPage() {
     }
 
     if (programReady === false) {
-      toast.error('Program pool belum terdeploy di Devnet. Stake diblokir agar tidak ada data transaksi palsu.')
+      toast.error('Program pool belum terdeploy di Solana Devnet. Transaksi stake diblokir.')
       return
     }
 
@@ -256,12 +252,6 @@ export default function PoolsPage() {
     }
 
     if (staking) return
-
-    const injectedProvider = (window as unknown as { solana?: SolanaWalletProvider }).solana
-    if (!injectedProvider?.isConnected || typeof injectedProvider.signAndSendTransaction !== 'function') {
-      toast.error('Wallet tidak siap untuk menandatangani transaksi stake')
-      return
-    }
 
     setStaking(true)
     const loadingToast = toast.loading('Menandatangani transaksi stake USDC...', {
@@ -284,7 +274,7 @@ export default function PoolsPage() {
       const { blockhash } = await connection.getLatestBlockhash('confirmed')
       transaction.recentBlockhash = blockhash
 
-      const signedResult = await injectedProvider.signAndSendTransaction(transaction)
+      const signedResult = await signAndSendTransaction(transaction)
       const txSignature = signedResult?.signature
       if (!txSignature) {
         throw new Error('Signature transaksi stake tidak ditemukan.')
@@ -389,7 +379,6 @@ export default function PoolsPage() {
           </p>
         </header>
 
-        {/* Feature Cards */}
         <div className="grid md:grid-cols-4 gap-6 mb-12">
           {[
             { title: 'Petani Wajib Asuransi', desc: 'Mitigasi 100% gagal bayar iklim.', icon: <Shield className="text-amber-400" size={24}/> },
@@ -417,7 +406,7 @@ export default function PoolsPage() {
                     <TrendingUp className="text-emerald-400" /> Padi Ciherang Pool
                   </h2>
                   <p className="text-slate-500 mt-2 font-bold text-sm uppercase tracking-widest">
-                    APY backend: <span className="text-emerald-400">{stats.avgApy !== null ? `${stats.avgApy.toFixed(2)}%` : 'N/A'}</span> (USDC Stablecoin)
+                    APY Target: <span className="text-emerald-400">{stats.avgApy !== null ? `${stats.avgApy.toFixed(2)}%` : 'Fetching...'}</span> (USDC Stablecoin)
                   </p>
                 </div>
                 <div className="text-right">
@@ -427,7 +416,6 @@ export default function PoolsPage() {
                 </div>
               </div>
 
-              {/* TVL Cards — REAL data */}
               <div className="grid md:grid-cols-2 gap-8 mb-10">
                 <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 group hover:border-amber-500/20 transition-all">
                   <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Program Balance (Devnet)</div>
@@ -457,7 +445,6 @@ export default function PoolsPage() {
                 </div>
               </div>
 
-              {/* Stake UI */}
               {!connected ? (
                 <div className="p-10 text-center border-2 border-dashed border-amber-500/20 bg-amber-500/5 rounded-[40px]">
                   <AlertTriangle className="mx-auto text-amber-400 mb-6" size={48} />
@@ -505,18 +492,17 @@ export default function PoolsPage() {
                     ) : programReady === false ? (
                       'Program Pool Belum Live'
                     ) : (
-                      'Stake USDC Sekarang'
+                      'Stake ke Pool Devnet'
                     )}
                   </button>
-                  {programReady === false ? (
+                  {programReady === false && (
                     <p className="text-[10px] text-center text-amber-400 font-bold uppercase tracking-widest">
-                      Program pool Devnet belum terdeploy. Stake sengaja diblokir agar tidak ada data palsu.
-                    </p>
-                  ) : (
-                    <p className="text-[10px] text-center text-slate-600 font-bold uppercase tracking-widest italic">
-                      Setiap stake memerlukan tanda tangan wallet dan verifikasi transaksi sebelum metrik diperbarui.
+                      Program ID {PROGRAM_ID_STR.slice(0,8)}... belum executable di Devnet. Fitur stake dinonaktifkan sampai deploy valid selesai.
                     </p>
                   )}
+                  <p className="text-[10px] text-center text-slate-600 font-bold uppercase tracking-widest italic">
+                    Setiap stake memerlukan tanda tangan wallet dan verifikasi transaksi sebelum metrik diperbarui.
+                  </p>
                   {programReady === true && latestStake && (
                     <p className="text-[10px] text-center text-emerald-400 font-bold uppercase tracking-widest">
                       Stake terakhir: {latestStake.amountUsdc.toFixed(2)} USDC •{' '}

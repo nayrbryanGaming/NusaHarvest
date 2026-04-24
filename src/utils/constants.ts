@@ -1,6 +1,6 @@
 import { PublicKey } from '@solana/web3.js'
 
-export const PROGRAM_ID_STR = 'CgMn8QfThDQLkcghfP4A9AV3FTTECjSuZvf6Ngf1LiBx'
+export const PROGRAM_ID_STR = 'D1zZDFSbwLzVswWk3TnqMpFqSSJeu7CGARjju6qQoZYq'
 export const ORACLE_PUBKEY_STR = '7mgSJBnBr5NVED2xUdZQzkrmNnMwbEhjrCkQ5GxKA2Xd'
 export const NETWORK = 'devnet'
 export const RPC_URL = 'https://api.devnet.solana.com'
