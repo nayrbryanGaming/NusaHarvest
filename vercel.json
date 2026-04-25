@@ -1,4 +1,24 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_SOLANA_NETWORK": "devnet",
+    "NEXT_PUBLIC_SOLANA_RPC_URL": "https://api.devnet.solana.com",
+    "NEXT_PUBLIC_PROGRAM_ID": "D1zZDFSbwLzVswWk3TnqMpFqSSJeu7CGARjju6qQoZYq",
+    "NEXT_PUBLIC_USDC_MINT": "4zMMC9srtVu2nuQJHGGMBVsCLqzr6nYHGL9H5LHvpx5h",
+    "NEXT_PUBLIC_ANALYTICS_ENABLED": "true"
+  },
+  "regions": ["sin1"],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "geolocation=(self), camera=(), microphone=()" }
+      ]
+    }
+  ]
 }
