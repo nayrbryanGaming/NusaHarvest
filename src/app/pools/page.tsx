@@ -379,22 +379,27 @@ export default function PoolsPage() {
           </p>
         </header>
 
-        <div className="grid md:grid-cols-4 gap-6 mb-12">
+        <div className="grid md:grid-cols-4 gap-4 mb-12">
           {[
-            { title: 'Petani Wajib Asuransi', desc: 'Mitigasi 100% gagal bayar iklim.', icon: <Shield className="text-amber-400" size={24}/> },
-            { title: 'Kerjasama Koperasi', desc: 'KYC & penyaluran via koperasi.', icon: <Briefcase className="text-blue-400" size={24}/> },
-            { title: 'Insurance On-Chain', desc: 'Polis asuransi di-lock di SC.', icon: <Lock className="text-emerald-400" size={24}/> },
-            { title: '20% Reserve Cash', desc: 'Reserve TVL untuk likuiditas.', icon: <Zap className="text-purple-400" size={24}/> }
-          ].map((item, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} 
-              className="p-6 rounded-3xl bg-white/[0.01] border border-white/5 flex flex-col gap-4 group hover:bg-white/[0.04] transition-all">
-              <div className="p-3 bg-white/5 rounded-2xl border border-white/5 self-start group-hover:scale-110 transition-transform">{item.icon}</div>
-              <div>
-                <h3 className="text-white font-black text-sm uppercase tracking-widest">{item.title}</h3>
-                <p className="text-xs text-slate-500 mt-1">{item.desc}</p>
-              </div>
-            </motion.div>
-          ))}
+            { title: 'Petani Wajib Asuransi', desc: 'Mitigasi 100% gagal bayar iklim.',   icon: Shield,    color: 'text-amber-400',  bg: 'bg-amber-500/10 border-amber-500/20'   },
+            { title: 'Kerjasama Koperasi',    desc: 'KYC & penyaluran via koperasi.',      icon: Briefcase, color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20'     },
+            { title: 'Insurance On-Chain',    desc: 'Polis asuransi di-lock di SC.',        icon: Lock,      color: 'text-emerald-400',bg: 'bg-emerald-500/10 border-emerald-500/20'},
+            { title: '20% Reserve Cash',      desc: 'Reserve TVL untuk likuiditas.',       icon: Zap,       color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20'  },
+          ].map((item, i) => {
+            const Icon = item.icon
+            return (
+              <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, duration: 0.35, ease: [0.22,1,0.36,1] }}
+                className="hover-lift glass-panel p-5 rounded-2xl flex flex-col gap-3 group">
+                <div className={`p-2.5 rounded-xl border self-start ${item.bg}`}>
+                  <Icon className={item.color} size={20} />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-xs uppercase tracking-widest">{item.title}</h3>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{item.desc}</p>
+                </div>
+              </motion.div>
+            )
+          })}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">

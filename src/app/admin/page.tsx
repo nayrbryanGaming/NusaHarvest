@@ -298,14 +298,14 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
           {METRICS.map((statsRow, i) => (
-            <motion.div 
+            <motion.div
               key={statsRow.label}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="glass-panel p-6 rounded-3xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all group"
+              transition={{ delay: i * 0.08, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="hover-lift glass-panel p-6 rounded-3xl group"
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="p-3 bg-white/5 rounded-2xl border border-white/10 group-hover:scale-110 transition-transform">{statsRow.icon}</div>
@@ -389,24 +389,26 @@ export default function AdminDashboard() {
             <div className="glass-panel p-8 rounded-[40px] border border-white/5 bg-white/[0.01]">
               <h3 className="font-bold text-white mb-8 flex items-center gap-2 uppercase tracking-widest text-xs">Security Metrics</h3>
               <div className="space-y-8">
-                <div>
-                   <div className="flex justify-between text-[10px] font-black uppercase text-slate-500 mb-3 tracking-widest">
-                      <span>Reserve Ratio</span>
-                      <span className="text-white">{reserveRatioPct.toFixed(2)}%</span>
-                   </div>
-                   <div className="h-2 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
-                     <div className={`h-full ${reserveRatioWidthClass} bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)]`} />
-                   </div>
-                </div>
-                <div>
-                   <div className="flex justify-between text-[10px] font-black uppercase text-slate-500 mb-3 tracking-widest">
-                      <span>Claims / Policy Ratio</span>
-                      <span className="text-white">{claimRatioPct.toFixed(2)}%</span>
-                   </div>
-                   <div className="h-2 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
-                     <div className={`h-full ${claimRatioWidthClass} bg-gradient-to-r from-blue-600 to-blue-400 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)]`} />
-                   </div>
-                </div>
+                {[
+                  { label: 'Reserve Ratio',         pct: reserveRatioPct, grad: 'linear-gradient(to right,#059669,#34d399)', glow: 'rgba(52,211,153,0.5)' },
+                  { label: 'Claims / Policy Ratio',  pct: claimRatioPct,   grad: 'linear-gradient(to right,#2563eb,#60a5fa)', glow: 'rgba(96,165,250,0.5)' },
+                ].map(r => (
+                  <div key={r.label}>
+                    <div className="flex justify-between text-[10px] font-bold uppercase text-slate-500 mb-2.5 tracking-widest">
+                      <span>{r.label}</span>
+                      <span className="text-white font-black tabular-nums">{r.pct.toFixed(2)}%</span>
+                    </div>
+                    <div className="progress-track">
+                      <motion.div
+                        className="progress-fill"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.max(3, Math.min(100, r.pct))}%` }}
+                        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+                        style={{ background: r.grad, boxShadow: `0 0 14px ${r.glow}` }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
               
               <div className="mt-12 space-y-4">

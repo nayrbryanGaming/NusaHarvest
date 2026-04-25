@@ -1,349 +1,365 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { Leaf, Shield, TrendingUp, Zap, CloudRain, BarChart3, ChevronRight, Activity, Globe } from 'lucide-react'
+import { motion, useInView } from 'framer-motion'
+import { Leaf, Shield, TrendingUp, Zap, CloudRain, ChevronRight, Activity, Globe, ArrowUpRight, Lock, Cpu } from 'lucide-react'
 import { useWallet } from '../providers/WalletProvider'
 import Navbar from '../components/Navbar'
 import { PROGRAM_ID_STR } from '../utils/constants'
 import { isProtocolProgramDeployed } from '../utils/solana'
 import { getApiUrl } from '../utils/api'
 
-const FADE_UP: any = {
-  initial: { opacity: 0, y: 30 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: '-50px' },
-  transition: { duration: 0.6, ease: 'easeOut' }
-}
-
-const STAGGER: any = {
-  initial: { opacity: 0 },
-  whileInView: { opacity: 1 },
-  viewport: { once: true },
-  transition: { staggerChildren: 0.2 }
-}
-
-const STAT_ICONS = [
-  <Leaf size={18} className="text-emerald-400" key="leaf" />,
-  <TrendingUp size={18} className="text-emerald-400" key="trend" />,
-  <Zap size={18} className="text-amber-400" key="zap" />,
-  <Globe size={18} className="text-indigo-400" key="globe" />,
-]
+/* ─── Animation Presets ─────────────────────────────────────── */
+const FV = (delay = 0) => ({
+  initial:    { opacity: 0, y: 28 },
+  whileInView: { opacity: 1, y: 0  },
+  viewport:   { once: true, margin: '-40px' },
+  transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay },
+})
 
 const FEATURES = [
-  { step: '01', icon: <CloudRain className="text-blue-400" size={32} />, title: 'Oracle Cuaca Real-time', desc: 'Terhubung dengan 500+ stasiun BMKG. Data curah hujan diverifikasi on-chain setiap 24 jam.', gradient: 'from-blue-600/20 to-blue-900/20' },
-  { step: '02', icon: <Shield className="text-emerald-400" size={32} />, title: 'Smart Contract Engine', desc: 'Otomatis memeriksa threshold curah hujan < 40mm dalam 30 hari. Tanpa perlu klaim manual.', gradient: 'from-emerald-600/20 to-emerald-900/20' },
-  { step: '03', icon: <Zap className="text-amber-400" size={32} />, title: 'Payout Instan USDC', desc: 'Dana asuransi langsung cair ke dompet koperasi dalam hitungan jam setelah trigger terpenuhi.', gradient: 'from-amber-600/20 to-amber-900/20' }
+  {
+    step: '01', icon: CloudRain, iconColor: 'text-blue-400',
+    iconBg: 'bg-blue-500/15 border-blue-500/25',
+    glow: 'from-blue-600/15 via-blue-800/10 to-transparent',
+    border: 'hover:border-blue-500/30',
+    title: 'Oracle Cuaca Real-time',
+    desc: 'Terhubung dengan 500+ stasiun BMKG. Data curah hujan diverifikasi on-chain setiap 24 jam.'
+  },
+  {
+    step: '02', icon: Shield, iconColor: 'text-emerald-400',
+    iconBg: 'bg-emerald-500/15 border-emerald-500/25',
+    glow: 'from-emerald-600/15 via-emerald-800/10 to-transparent',
+    border: 'hover:border-emerald-500/30',
+    title: 'Smart Contract Engine',
+    desc: 'Otomatis memeriksa threshold curah hujan < 40mm dalam 30 hari. Tanpa perlu klaim manual.'
+  },
+  {
+    step: '03', icon: Zap, iconColor: 'text-amber-400',
+    iconBg: 'bg-amber-500/15 border-amber-500/25',
+    glow: 'from-amber-600/15 via-amber-800/10 to-transparent',
+    border: 'hover:border-amber-500/30',
+    title: 'Payout Instan USDC',
+    desc: 'Dana asuransi langsung cair ke dompet koperasi dalam hitungan jam setelah trigger terpenuhi.'
+  },
 ]
 
-type LiveStats = {
-  farmerCount: string
-  tvl: string
-  networkStatus: string
+const CAPABILITIES = [
+  { icon: Lock,  title: 'Smart Contract Audit',       desc: 'Arsitektur Solana Anchor v0.30 yang secure by design.' },
+  { icon: Cpu,   title: 'Machine Learning Risk Engine', desc: 'Pemodelan risiko presisi menggunakan ENSO index dan historis 20 tahun BMKG.' },
+  { icon: Leaf,  title: 'Komoditas Premium',            desc: 'Coverage eksklusif untuk Padi, Kopi Robusta & Kelapa Sawit.' },
+]
+
+const TICKER_ITEMS = [
+  '🌾 PADI CIHERANG — Terlindungi',
+  '☕ KOPI ROBUSTA — Terlindungi',
+  '🌴 KELAPA SAWIT — Terlindungi',
+  '⚡ PAYOUT < 2 JAM',
+  '🔒 ANCHOR v0.30 AUDIT',
+  '📡 BMKG REAL-TIME',
+  '💵 SETTLEMENT USDC',
+  '🔗 SOLANA DEVNET',
+]
+
+type LiveStats = { farmerCount: string; tvl: string; networkStatus: string }
+
+/* ─── Animated Counter ─────────────────────────────────────── */
+function AnimatedNumber({ value, suffix = '' }: { value: string; suffix?: string }) {
+  const ref    = useRef<HTMLSpanElement>(null)
+  const inView = useInView(ref, { once: true })
+  return (
+    <span ref={ref} className={`metric-value transition-all duration-500 ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
+      {value}{suffix}
+    </span>
+  )
 }
 
 export default function HomePage() {
   const { publicKey, connected } = useWallet()
-  const [programReady, setProgramReady] = useState<boolean | null>(null)
-  const [liveStats, setLiveStats] = useState<LiveStats>({
-    farmerCount: '...', tvl: '...', networkStatus: '...'
-  })
+  const [programReady,   setProgramReady]   = useState<boolean | null>(null)
+  const [liveStats,      setLiveStats]      = useState<LiveStats>({ farmerCount: '...', tvl: '...', networkStatus: '...' })
 
   useEffect(() => {
     let cancelled = false
-
-    const checkProgram = async () => {
-      try {
-        const deployed = await isProtocolProgramDeployed()
-        if (!cancelled) setProgramReady(deployed)
-      } catch {
-        if (!cancelled) setProgramReady(false)
-      }
-    }
-
-    void checkProgram()
-
-    return () => {
-      cancelled = true
-    }
+    isProtocolProgramDeployed()
+      .then(d => { if (!cancelled) setProgramReady(d) })
+      .catch(()  => { if (!cancelled) setProgramReady(false) })
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
     let cancelled = false
-
     const fetchStats = async () => {
-      const metricsUrl = getApiUrl('/api/pool/metrics')
-      if (!metricsUrl) {
-        if (!cancelled) setLiveStats({ farmerCount: '0', tvl: '$0.00', networkStatus: 'Devnet' })
-        return
-      }
+      const url = getApiUrl('/api/pool/metrics')
+      if (!url) { if (!cancelled) setLiveStats({ farmerCount: '0', tvl: '$0.00', networkStatus: 'Devnet' }); return }
       try {
-        const res = await fetch(metricsUrl)
-        if (!res.ok) throw new Error('metrics unavailable')
+        const res  = await fetch(url)
+        if (!res.ok) throw new Error()
         const payload = await res.json()
-        if (!payload?.success || !payload?.data) throw new Error('no data')
-        const data = payload.data
-        const activePolicies: number = data.insurance?.activePolicies ?? 0
-        const tvlUsdc: number = data.finance?.totalTvlUsdc ?? 0
-        if (!cancelled) {
-          setLiveStats({
-            farmerCount: activePolicies > 0 ? `${activePolicies}` : '0',
-            tvl: `$${tvlUsdc.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            networkStatus: 'Active'
-          })
-        }
-      } catch {
-        if (!cancelled) setLiveStats({ farmerCount: '0', tvl: '$0.00', networkStatus: 'Devnet' })
-      }
+        if (!payload?.success) throw new Error()
+        const d = payload.data
+        if (!cancelled) setLiveStats({
+          farmerCount: String(d.insurance?.activePolicies ?? 0),
+          tvl:  `$${Number(d.finance?.totalTvlUsdc ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          networkStatus: 'Active'
+        })
+      } catch { if (!cancelled) setLiveStats({ farmerCount: '0', tvl: '$0.00', networkStatus: 'Devnet' }) }
     }
-
     void fetchStats()
-
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
+
+  const STATS = [
+    { label: 'Active Policies', value: liveStats.farmerCount, icon: Leaf,       accent: 'emerald' },
+    { label: 'Total Value Locked', value: liveStats.tvl,       icon: TrendingUp, accent: 'teal'    },
+    { label: 'Avg. Settlement',  value: '< 2 Jam',             icon: Zap,        accent: 'amber'   },
+    { label: 'Network',          value: liveStats.networkStatus,icon: Globe,      accent: 'indigo'  },
+  ]
+
+  const accentMap: Record<string, string> = {
+    emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    teal:    'text-teal-400 bg-teal-500/10 border-teal-500/20',
+    amber:   'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    indigo:  'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
+  }
 
   return (
     <main className="min-h-screen relative overflow-hidden">
-      {/* Dynamic Background Glows */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[120px] -z-10 rounded-full" />
-      <div className="absolute bottom-0 right-0 w-[600px] h-[400px] bg-teal-500/10 blur-[100px] -z-10 rounded-full" />
+      {/* ── Ambient Glows ───────────────────────────── */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-emerald-500/8 blur-[140px] rounded-full animate-float-delayed" />
+        <div className="absolute bottom-0 right-[-10%] w-[700px] h-[500px] bg-teal-500/6 blur-[120px] rounded-full animate-float" />
+        <div className="absolute top-[50%] left-[-5%] w-[400px] h-[400px] bg-indigo-600/5 blur-[100px] rounded-full" />
+      </div>
 
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative pt-36 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <motion.div {...FADE_UP} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-teal-500/30 bg-teal-500/10 text-teal-300 text-xs font-medium tracking-wide mb-8 backdrop-blur shadow-[0_0_15px_rgba(20,184,166,0.15)]">
+      {/* ── Hero ────────────────────────────────────── */}
+      <section className="relative pt-36 pb-16 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+        {/* Background grid */}
+        <div className="absolute inset-0 bg-grid-dark bg-[size:48px_48px] opacity-60 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_50%,transparent_100%)]" />
+
+        {/* Live badge */}
+        <motion.div {...FV(0)} className="relative inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-teal-500/30 bg-teal-500/8 text-teal-300 text-[11px] font-bold tracking-widest uppercase mb-8 backdrop-blur-sm shadow-teal-sm">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+            <span className="animate-ping absolute inset-0 rounded-full bg-teal-400 opacity-70" />
+            <span className="relative rounded-full h-2 w-2 bg-teal-500" />
           </span>
-          PLATFORM AGROFI INDONESIA
+          Platform AgroFi Indonesia • Solana Devnet
         </motion.div>
 
-        <motion.h1 
-          {...FADE_UP} transition={{ delay: 0.1, duration: 0.7 }}
-          className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-slate-500 mb-6 tracking-tight leading-[1.1]"
+        {/* Headline */}
+        <motion.h1
+          {...FV(0.08)}
+          className="text-5xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-100 to-slate-500 mb-5 tracking-tight leading-[1.08]"
         >
-          Perlindungan <br className="hidden md:block"/>
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 text-glow">
-            Anti-Krisis
-          </span> 
-          {' '}untuk Petani
+          Perlindungan<br className="hidden md:block" />
+          <span className="gradient-text-emerald text-glow"> Anti-Krisis </span>
+          untuk Petani
         </motion.h1>
 
-        <motion.p 
-          {...FADE_UP} transition={{ delay: 0.2, duration: 0.7 }}
-          className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed"
-        >
+        <motion.p {...FV(0.16)} className="text-base md:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
           Infrastruktur <span className="text-slate-200 font-semibold">AgroFi</span> pertama di Indonesia. Asuransi parametrik otomatis yang cair dalam hitungan jam saat gagal panen akibat cuaca. Tanpa klaim manual. Disokong oleh DeFi yield pools.
         </motion.p>
 
-        <motion.div 
-          {...FADE_UP} transition={{ delay: 0.3, duration: 0.7 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-5 w-full sm:w-auto"
-        >
-          <Link href="/dashboard" className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-lg transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] hover:-translate-y-1 flex items-center justify-center gap-2">
-            Masuk Dashboard Petani <ChevronRight size={20} />
+        {/* CTA Buttons */}
+        <motion.div {...FV(0.24)} className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-8">
+          <Link href="/dashboard" className="btn-primary w-full sm:w-auto px-8 py-4 text-white font-bold text-[15px] flex items-center justify-center gap-2">
+            Masuk Dashboard Petani <ChevronRight size={18} />
           </Link>
-          <Link href="/pools" className="w-full sm:w-auto px-8 py-4 rounded-xl glass-panel text-emerald-300 font-bold text-lg hover:bg-white/5 transition-all flex items-center justify-center gap-2">
-            Buka Peluang Investasi
+          <Link href="/pools" className="btn-ghost w-full sm:w-auto px-8 py-4 text-emerald-300 font-bold text-[15px] flex items-center justify-center gap-2">
+            Buka Peluang Investasi <ArrowUpRight size={16} />
           </Link>
         </motion.div>
 
-        {/* Floating Wallet Status */}
+        {/* Wallet pill */}
         {connected && publicKey && (
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mt-8 px-5 py-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 flex items-center gap-2 text-sm font-mono backdrop-blur-md">
-            <Activity size={16} className="animate-pulse" /> Wallet Aktif: {publicKey.slice(0, 6)}...{publicKey.slice(-4)}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.88, y: 8 }}
+            animate={{ opacity: 1, scale: 1,    y: 0 }}
+            className="data-badge data-badge-live px-5 py-2 text-xs font-mono"
+          >
+            <Activity size={14} /> Wallet Aktif: {publicKey.slice(0,6)}…{publicKey.slice(-4)}
           </motion.div>
         )}
       </section>
 
-      {/* Stats Matrix Section */}
-      <section className="relative z-10 max-w-7xl mx-auto px-6 pb-24">
-        <motion.div
-          variants={STAGGER}
-          initial="initial"
-          whileInView="whileInView"
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
-        >
-          {[
-            { label: 'Active Policies', value: liveStats.farmerCount },
-            { label: 'Total Value Locked', value: liveStats.tvl },
-            { label: 'Avg. Settlement', value: '< 2 Jam' },
-            { label: 'Network', value: liveStats.networkStatus }
-          ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              variants={FADE_UP}
-              className="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center group hover:border-emerald-500/40 transition-colors"
-            >
-              <div className="w-12 h-12 rounded-full bg-slate-800/50 flex items-center justify-center mb-4 border border-slate-700/50 group-hover:scale-110 transition-transform">
-                {STAT_ICONS[i]}
-              </div>
-              <h3 className="text-2xl md:text-3xl font-black text-white mb-1 drop-shadow-md">{stat.value}</h3>
-              <p className="text-xs md:text-sm text-slate-400 font-medium">{stat.label}</p>
-            </motion.div>
-          ))}
-        </motion.div>
+      {/* ── Ticker ──────────────────────────────────── */}
+      <div className="section-divider mb-0" />
+      <div className="py-3 bg-[#02050a]/60 overflow-hidden relative border-y border-white/[0.04]">
+        <div className="ticker-wrap">
+          <div className="ticker-content">
+            {[...TICKER_ITEMS, ...TICKER_ITEMS].map((t, i) => (
+              <span key={i} className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                {t}
+                <span className="mx-6 text-emerald-900">◆</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="section-divider mt-0" />
+
+      {/* ── Stats Matrix ─────────────────────────────── */}
+      <section className="relative z-10 max-w-7xl mx-auto px-6 py-20">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+          {STATS.map((stat, i) => {
+            const Icon = stat.icon
+            return (
+              <motion.div
+                key={stat.label}
+                {...FV(i * 0.1)}
+                className="glass-panel hover-lift p-5 md:p-7 rounded-2xl flex flex-col items-center text-center"
+              >
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 border ${accentMap[stat.accent]}`}>
+                  <Icon size={20} className={accentMap[stat.accent].split(' ')[0]} />
+                </div>
+                <h3 className={`text-2xl md:text-3xl font-black mb-1 ${accentMap[stat.accent].split(' ')[0]}`}>
+                  <AnimatedNumber value={stat.value} />
+                </h3>
+                <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">{stat.label}</p>
+              </motion.div>
+            )
+          })}
+        </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="relative py-24 bg-[#03070b]">
-        {/* Subtle grid background */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-
+      {/* ── How It Works ─────────────────────────────── */}
+      <section className="relative py-24 bg-[#02050a]">
+        <div className="absolute inset-0 bg-grid-dark bg-[size:48px_48px] opacity-40 bg-grid-fade" />
         <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <motion.div {...FADE_UP} className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight">Evolusi Asuransi Pertanian</h2>
-            <p className="text-lg text-slate-400">Dari ladang hingga ke dompet tanpa campur tangan manusia. Algoritma kami memastikan keadilan absolut bagi petani.</p>
+          <motion.div {...FV()} className="text-center max-w-3xl mx-auto mb-16">
+            <p className="data-badge data-badge-inactive mx-auto w-fit mb-4">Cara Kerja</p>
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-5 tracking-tight">Evolusi Asuransi Pertanian</h2>
+            <p className="text-slate-400 leading-relaxed">Dari ladang hingga ke dompet tanpa campur tangan manusia. Algoritma kami memastikan keadilan absolut bagi petani.</p>
           </motion.div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            {FEATURES.map((feat, i) => (
-              <motion.div 
-                key={feat.title}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-50px' }}
-                transition={{ duration: 0.6, delay: i * 0.2 }}
-                className="relative p-1 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900/50 hover:from-emerald-500/40 hover:to-teal-900/50 transition-all duration-500 group"
-              >
-                <div className="h-full bg-[#050b14] rounded-xl p-8 relative overflow-hidden">
-                  <div className={`absolute -right-10 -top-10 w-40 h-40 bg-gradient-to-br ${feat.gradient} blur-[40px] rounded-full group-hover:scale-150 transition-transform duration-700`} />
-                  
-                  <div className="flex items-center gap-4 mb-6 relative z-10">
-                    <span className="text-4xl font-black text-slate-800">{feat.step}</span>
-                    <div className="p-3 bg-slate-900 rounded-xl border border-slate-700 shadow-md">
-                      {feat.icon}
+          <div className="grid lg:grid-cols-3 gap-6">
+            {FEATURES.map((feat, i) => {
+              const Icon = feat.icon
+              return (
+                <motion.div
+                  key={feat.title}
+                  {...FV(i * 0.12)}
+                  className={`group relative rounded-2xl border border-slate-800 ${feat.border} transition-colors duration-400 overflow-hidden hover-lift`}
+                >
+                  {/* Glow corner */}
+                  <div className={`absolute -right-12 -top-12 w-48 h-48 bg-gradient-to-br ${feat.glow} blur-[50px] rounded-full group-hover:scale-150 transition-transform duration-700`} />
+                  <div className="relative z-10 p-7 bg-gradient-card h-full">
+                    <div className="flex items-center gap-4 mb-6">
+                      <span className="text-5xl font-black text-slate-800 leading-none select-none">{feat.step}</span>
+                      <div className={`p-3 rounded-xl border ${feat.iconBg}`}>
+                        <Icon className={feat.iconColor} size={26} />
+                      </div>
                     </div>
+                    <h3 className="text-lg font-bold text-white mb-3">{feat.title}</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed">{feat.desc}</p>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-3 relative z-10">{feat.title}</h3>
-                  <p className="text-slate-400 leading-relaxed text-sm relative z-10">{feat.desc}</p>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              )
+            })}
           </div>
         </div>
       </section>
 
-      {/* Advanced Capabilities */}
+      {/* ── Capabilities + Contract Card ─────────────── */}
       <section className="py-24 px-6 max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <motion.div {...FADE_UP} className="space-y-8">
-            <h2 className="text-4xl font-black text-white leading-tight">Teknologi Defi yang Berdampak ke Dunia Nyata</h2>
-            <p className="text-slate-400 text-lg leading-relaxed">
-              Nusa Harvest menghancurkan tembok batas antara keuangan terdesentralisasi (DeFi) dan kebutuhan finansial dunia nyata (RWA). Liquidity provider mendapatkan imbal hasil yang stabil dan tidak berkorelasi dengan pasar kripto, sementara petani mendapatkan safety net absolut terhadap krisis iklim.
-            </p>
+        <div className="grid md:grid-cols-2 gap-14 items-center">
+          <motion.div {...FV()} className="space-y-8">
+            <div>
+              <p className="data-badge data-badge-inactive w-fit mb-4">Teknologi</p>
+              <h2 className="text-4xl font-black text-white leading-tight mb-4">DeFi yang Berdampak ke Dunia Nyata</h2>
+              <p className="text-slate-400 leading-relaxed">Nusa Harvest menghancurkan tembok batas antara keuangan terdesentralisasi dan kebutuhan finansial dunia nyata (RWA). Liquidity provider mendapatkan imbal hasil stabil, sementara petani mendapatkan safety net absolut terhadap krisis iklim.</p>
+            </div>
             <ul className="space-y-4">
-              {[
-                { title: 'Smart Contract Audit', desc: 'Arsitektur Solana Anchor v0.30 yang secure by design.' },
-                { title: 'Machine Learning Risk Engine', desc: 'Pemodelan risiko presisi menggunakan ENSO index dan historis 20 tahun BMKG.' },
-                { title: 'Komoditas Premium', desc: 'Coverage eksklusif untuk Padi, Kopi Robusta & Kelapa Sawit.' }
-              ].map((item, i) => (
-                <li key={i} className="flex gap-4">
-                  <div className="mt-1 w-6 h-6 rounded bg-emerald-900/50 border border-emerald-500/50 flex items-center justify-center shrink-0">
-                    <CheckIcon className="w-3.5 h-3.5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-semibold">{item.title}</h4>
-                    <p className="text-slate-400 text-sm">{item.desc}</p>
-                  </div>
-                </li>
-              ))}
+              {CAPABILITIES.map((item, i) => {
+                const Icon = item.icon
+                return (
+                  <motion.li key={i} {...FV(i * 0.1)} className="flex gap-4 group">
+                    <div className="mt-0.5 w-8 h-8 rounded-xl bg-emerald-900/40 border border-emerald-500/30 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+                      <Icon className="text-emerald-400" size={15} />
+                    </div>
+                    <div>
+                      <h4 className="text-white font-semibold text-sm">{item.title}</h4>
+                      <p className="text-slate-400 text-sm mt-0.5">{item.desc}</p>
+                    </div>
+                  </motion.li>
+                )
+              })}
             </ul>
           </motion.div>
 
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="relative"
-          >
-            {/* Holographic glowing card representation */}
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-purple-500/20 blur-[80px] -z-10 rounded-full" />
-            <div className="glass-panel p-8 rounded-2xl border border-slate-700/50 bg-[#0a1628]/80">
-              <div className="flex justify-between items-center mb-6 pb-6 border-b border-slate-800">
+          {/* Smart Contract Card */}
+          <motion.div {...FV(0.1)} className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/15 to-purple-500/15 blur-[80px] -z-10 rounded-full" />
+            <div className="glass-panel rounded-3xl border border-slate-700/40 p-7 space-y-5">
+              <div className="flex justify-between items-center pb-5 border-b border-slate-800/60">
                 <div>
-                  <h3 className="text-slate-400 text-sm font-medium mb-1">Status Smart Contract</h3>
+                  <p className="text-slate-400 text-xs font-medium mb-1">Status Smart Contract</p>
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`w-2 h-2 rounded-full ${programReady === null ? 'bg-slate-500' : programReady ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}
-                    ></span>
-                    <span className="text-white font-semibold">
-                      {programReady === null ? 'Memeriksa status on-chain...' : programReady ? 'Terdeploy di Devnet' : 'Belum terdeploy di Devnet'}
+                    <div className={`status-dot-live ${programReady === null ? 'bg-slate-500' : programReady ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                    <span className="text-white font-bold text-sm">
+                      {programReady === null ? 'Memeriksa status...' : programReady ? 'Live di Devnet' : 'Deploy In-Progress'}
                     </span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <h3 className="text-slate-400 text-sm font-medium mb-1">Verifikasi On-Chain</h3>
-                  <span className={`font-mono font-bold text-lg ${programReady === true ? 'text-emerald-400' : programReady === false ? 'text-amber-400' : 'text-slate-400'}`}>
+                  <p className="text-slate-400 text-xs font-medium mb-1">Verifikasi</p>
+                  <span className={`font-mono font-black text-base ${programReady === true ? 'text-emerald-400' : programReady === false ? 'text-amber-400' : 'text-slate-400'}`}>
                     {programReady === null ? 'CHECKING' : programReady ? 'EXECUTABLE' : 'NOT FOUND'}
                   </span>
                 </div>
               </div>
-              
-              <div className="space-y-4 font-mono text-xs text-slate-300">
-                <div className="flex justify-between bg-slate-900/50 p-3 rounded-lg border border-slate-800">
-                  <span className="text-slate-500">Program ID</span>
-                  <a
-                    href={`https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="text-emerald-300 underline underline-offset-2 hover:text-emerald-200"
-                  >
-                    {PROGRAM_ID_STR.slice(0, 10)}...{PROGRAM_ID_STR.slice(-6)}
-                  </a>
+
+              {[
+                { label: 'Program ID',       value: `${PROGRAM_ID_STR.slice(0,10)}…${PROGRAM_ID_STR.slice(-6)}`, href: `https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`, color: 'text-emerald-300' },
+                { label: 'Data Source',      value: 'oracle.bmkg.go.id', color: 'text-blue-300'   },
+                { label: 'Settlement Asset', value: 'USDC (SPL Token)',  color: 'text-teal-300'   },
+                { label: 'Framework',        value: 'Anchor v0.30 / Rust', color: 'text-slate-300' },
+              ].map(row => (
+                <div key={row.label} className="mono-block flex justify-between items-center">
+                  <span className="text-slate-500">{row.label}</span>
+                  {row.href
+                    ? <a href={row.href} target="_blank" rel="noreferrer" className={`${row.color} hover:brightness-125 underline underline-offset-2 transition-all`}>{row.value}</a>
+                    : <span className={row.color}>{row.value}</span>
+                  }
                 </div>
-                <div className="flex justify-between bg-slate-900/50 p-3 rounded-lg border border-slate-800 shadow-inner">
-                  <span className="text-slate-500">Data Source</span>
-                  <span className="text-blue-300">oracle.bmkg.go.id</span>
-                </div>
-                <div className="flex justify-between bg-slate-900/50 p-3 rounded-lg border border-slate-800">
-                  <span className="text-slate-500">Settlement Asset</span>
-                  <span className="text-teal-300">USDC (SPL Token)</span>
-                </div>
-              </div>
-              
-              <div className="mt-8">
-                <a
-                  href={`https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-semibold transition-colors border border-slate-600 inline-flex items-center justify-center"
-                >
-                  Lihat di Solana Explorer ↗
-                </a>
-              </div>
+              ))}
+
+              <a
+                href={`https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-ghost w-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-slate-300 rounded-xl"
+              >
+                Lihat di Solana Explorer <ArrowUpRight size={15} />
+              </a>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-[#1e3a2f]/40 py-12 text-center text-slate-500 text-sm bg-[#02050a] relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Leaf size={16} className="text-emerald-600" />
-            <span className="font-bold text-slate-300">Nusa Harvest AgroFi</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400">v1.0 Devnet</span>
+      {/* ── Footer ──────────────────────────────────── */}
+      <footer className="border-t border-white/[0.04] py-10 bg-[#02050a]">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <Leaf size={14} className="text-emerald-500" />
+            </div>
+            <span className="font-bold text-slate-300 text-sm">Nusa Harvest AgroFi</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-500 font-mono">v1.0 Devnet</span>
           </div>
-          <p className="font-mono text-xs text-slate-500">
-            © 2026. Built with precision for Indonesian farmers.
+          <p className="text-[11px] font-mono text-slate-600">
+            © 2026 · Built with precision for Indonesia's 73 million farmers.
           </p>
+          <div className="flex items-center gap-4 text-[11px] text-slate-600 font-medium">
+            <Link href="/dashboard" className="hover:text-slate-400 transition-colors">Dashboard</Link>
+            <Link href="/pools"     className="hover:text-slate-400 transition-colors">Pools</Link>
+            <Link href="/market"    className="hover:text-slate-400 transition-colors">Market</Link>
+          </div>
         </div>
       </footer>
     </main>
-  )
-}
-
-function CheckIcon(props: any) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
   )
 }

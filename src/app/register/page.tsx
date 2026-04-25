@@ -123,33 +123,34 @@ export default function RegisterFarmPage() {
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block pl-2 italic">Informasi Lahan</label>
                 <div className="space-y-4">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="Nama Lahan (e.g. Sawah Klaten 01)"
                     required
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
-                    className="w-full bg-white/[0.03] border-2 border-white/10 rounded-2xl p-5 text-white font-bold focus:border-emerald-500/50 focus:outline-none transition-all"
+                    className="input-field rounded-2xl p-5 font-bold text-sm"
                   />
-                  <select 
+                  <select
                     aria-label="Jenis komoditas"
                     value={formData.cropType}
                     onChange={e => setFormData({...formData, cropType: e.target.value})}
-                    className="w-full bg-white/[0.03] border-2 border-white/10 rounded-2xl p-5 text-white font-bold focus:border-emerald-500/50 focus:outline-none appearance-none"
+                    className="input-field rounded-2xl p-5 font-bold text-sm appearance-none cursor-pointer"
                   >
-                    <option value="RICE">Padi (Rice)</option>
-                    <option value="CORN">Jagung (Corn)</option>
-                    <option value="COFFEE">Kopi (Coffee)</option>
-                    <option value="SOYBEAN">Kedelai (Soybean)</option>
+                    <option value="RICE">🌾 Padi (Rice)</option>
+                    <option value="CORN">🌽 Jagung (Corn)</option>
+                    <option value="COFFEE">☕ Kopi (Coffee)</option>
+                    <option value="SOYBEAN">🫘 Kedelai (Soybean)</option>
                   </select>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     placeholder="Luas Lahan (Hektar)"
                     required
+                    min="0.1"
                     step="0.1"
                     value={formData.hectares}
                     onChange={e => setFormData({...formData, hectares: e.target.value})}
-                    className="w-full bg-white/[0.03] border-2 border-white/10 rounded-2xl p-5 text-white font-bold focus:border-emerald-500/50 focus:outline-none transition-all"
+                    className="input-field rounded-2xl p-5 font-bold text-sm"
                   />
                 </div>
               </div>
@@ -157,22 +158,22 @@ export default function RegisterFarmPage() {
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block pl-2 italic">Koordinat GPS</label>
                 <div className="space-y-4">
-                  <div className="flex gap-4">
-                    <input 
-                      type="text" 
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
                       placeholder="Latitude"
                       required
                       readOnly
                       value={formData.latitude}
-                      className="w-full bg-white/[0.02] border-2 border-white/5 border-dashed rounded-2xl p-5 text-slate-400 font-mono text-sm focus:outline-none cursor-not-allowed"
+                      className="w-full bg-slate-900/40 border border-dashed border-slate-700/60 rounded-2xl p-4 text-slate-400 font-mono text-sm cursor-not-allowed"
                     />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="Longitude"
                       required
                       readOnly
                       value={formData.longitude}
-                      className="w-full bg-white/[0.02] border-2 border-white/5 border-dashed rounded-2xl p-5 text-slate-400 font-mono text-sm focus:outline-none cursor-not-allowed"
+                      className="w-full bg-slate-900/40 border border-dashed border-slate-700/60 rounded-2xl p-4 text-slate-400 font-mono text-sm cursor-not-allowed"
                     />
                   </div>
                   <button 

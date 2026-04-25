@@ -160,39 +160,58 @@ export default function MarketPage() {
           </button>
         </header>
 
-        <div className="grid lg:grid-cols-4 gap-6 mb-12">
-          {data.map((c, i) => (
-            <motion.div 
-              key={c.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.1 }}
-              className="glass-panel p-6 rounded-[32px] border border-white/5 bg-white/[0.01] hover:bg-white/[0.04] transition-all group overflow-hidden relative"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{c.region}</div>
-                {c.up ? <TrendingUp size={16} className="text-emerald-400" /> : <TrendingDown size={16} className="text-rose-400" />}
-              </div>
-              <h3 className="text-2xl font-black mb-1 italic tracking-tighter">{c.name}</h3>
-              <div className="flex items-baseline gap-2 mb-4">
-                <div className="text-3xl font-mono font-black text-white">{c.price}</div>
-                <div className="text-xs text-slate-500">/ {c.unit}</div>
-              </div>
-              <div className={`inline-flex items-center gap-1 font-black text-xs ${c.change === 'Syncing...' || c.change === '...' ? 'text-slate-600' : c.up ? 'text-emerald-400' : 'text-rose-400'} mb-4`}>
-                {c.up ? <ArrowRight className="-rotate-45" size={12} /> : <ArrowRight className="rotate-45" size={12} />}
-                {c.change} <span className="text-[10px] text-slate-600 ml-1 font-bold">24H</span>
-              </div>
-              <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                <div className="text-[8px] font-mono text-slate-600 uppercase tracking-widest flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-blue-500" /> Oracle ID: {c.oracleId}
+        <div className="grid lg:grid-cols-4 gap-5 mb-12">
+          {data.map((c, i) => {
+            const isSyncing  = c.price === 'Syncing...' || c.price === '...'
+            const isLive     = !isSyncing
+            const topAccent  = c.id === 'solana'   ? 'from-purple-500/0 via-purple-400 to-purple-500/0'
+                             : c.id === 'usd-coin' ? 'from-blue-500/0 via-blue-400 to-blue-500/0'
+                             : c.id === 'padi'     ? 'from-emerald-500/0 via-emerald-400 to-emerald-500/0'
+                             : 'from-amber-500/0 via-amber-400 to-amber-500/0'
+            return (
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="hover-lift glass-panel p-6 rounded-3xl relative overflow-hidden group"
+              >
+                {/* Gradient top border accent */}
+                <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r ${topAccent} opacity-70 group-hover:opacity-100 transition-opacity`} />
+
+                <div className="flex justify-between items-start mb-5">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{c.region}</span>
+                  <div className="flex items-center gap-1.5">
+                    {isLive
+                      ? <span className="data-badge data-badge-live text-[8px] px-2 py-0.5"><span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />LIVE</span>
+                      : <span className="data-badge data-badge-inactive text-[8px] px-2 py-0.5">SYNC</span>
+                    }
+                    {c.up ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-rose-400" />}
+                  </div>
                 </div>
-                <div className={`text-[8px] font-black uppercase tracking-tighter ${c.price === 'Syncing...' ? 'text-slate-600' : 'text-emerald-500/40'}`}>
-                  {c.price === 'Syncing...' ? 'Verifying oracle...' : 'Live feed'}
+
+                <h3 className="text-lg font-black text-white mb-0.5 tracking-tight leading-tight">{c.name}</h3>
+                <div className="flex items-baseline gap-1.5 mb-3">
+                  <div className={`text-2xl font-mono font-black tabular-nums ${isSyncing ? 'text-slate-600' : 'text-white'}`}>
+                    {isSyncing ? <span className="skeleton inline-block w-24 h-7 rounded" /> : c.price}
+                  </div>
+                  {!isSyncing && <div className="text-xs text-slate-500">/ {c.unit}</div>}
                 </div>
-              </div>
-              <div className="absolute -right-6 -bottom-6 w-16 h-16 bg-white/5 blur-2xl rounded-full group-hover:bg-emerald-500/10 transition-all duration-700" />
-            </motion.div>
-          ))}
+
+                <div className={`inline-flex items-center gap-1 font-bold text-xs mb-4 ${c.change === 'Syncing...' || c.change === '...' || c.change === 'N/A' ? 'text-slate-600' : c.up ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {!isSyncing && (c.up ? <TrendingUp size={11} /> : <TrendingDown size={11} />)}
+                  {c.change} {!isSyncing && <span className="text-[10px] text-slate-600 font-normal">24H</span>}
+                </div>
+
+                <div className="pt-3 border-t border-white/[0.04] flex items-center justify-between">
+                  <span className="text-[9px] font-mono text-slate-600 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/60" />{c.oracleId}
+                  </span>
+                  {isLive && <span className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">On-chain ↗</span>}
+                </div>
+              </motion.div>
+            )
+          })}
         </div>
 
         <div className="glass-panel p-10 rounded-[48px] border border-white/5 bg-white/[0.01] relative overflow-hidden">

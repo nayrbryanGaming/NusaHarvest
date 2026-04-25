@@ -541,27 +541,19 @@ export default function DashboardPage() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div className="p-4 rounded-2xl bg-[#050b14]/50 border border-slate-800/60 shadow-inner flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-500/40 transition-colors">
-                  <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-blue-500/0 via-blue-500 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Droplets size={20} className="text-blue-400 mb-2" />
-                  <div className="text-3xl font-black text-white">{weather.current.rainfallMm}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-slate-500 mt-1 font-semibold">MM HARI INI</div>
-                </div>
-                <div className="p-4 rounded-2xl bg-[#050b14]/50 border border-slate-800/60 shadow-inner flex flex-col items-center justify-center hover:border-orange-500/40 transition-colors">
-                  <Sun size={20} className="text-orange-400 mb-2" />
-                  <div className="text-3xl font-black text-white">{weather.current.temperatureCelsius}°</div>
-                  <div className="text-[10px] uppercase tracking-wider text-slate-500 mt-1 font-semibold">SUHU UDARA</div>
-                </div>
-                <div className="p-4 rounded-2xl bg-[#050b14]/50 border border-slate-800/60 shadow-inner flex flex-col items-center justify-center hover:border-teal-500/40 transition-colors">
-                  <Activity size={20} className="text-teal-400 mb-2" />
-                  <div className="text-3xl font-black text-white">{weather.current.humidityPercent}%</div>
-                  <div className="text-[10px] uppercase tracking-wider text-slate-500 mt-1 font-semibold">KELEMBABAN</div>
-                </div>
-                <div className="p-4 rounded-2xl bg-[#050b14]/50 border border-slate-800/60 shadow-inner flex flex-col items-center justify-center hover:border-slate-500/40 transition-colors">
-                  <Wind size={20} className="text-slate-400 mb-2" />
-                  <div className="text-3xl font-black text-white">{weather.current.windSpeed}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-slate-500 mt-1 font-semibold">KM/J ANGIN</div>
-                </div>
+                {[
+                  { icon: <Droplets size={18} className="text-blue-400" />, value: weather.current.rainfallMm, unit: 'MM HARI INI',  accent: 'blue-500',   top: 'from-blue-500/0 via-blue-500 to-blue-500/0'   },
+                  { icon: <Sun     size={18} className="text-orange-400" />, value: `${weather.current.temperatureCelsius}°`, unit: 'SUHU UDARA', accent: 'orange-500', top: 'from-orange-500/0 via-orange-400 to-orange-500/0' },
+                  { icon: <Activity size={18} className="text-teal-400" />, value: `${weather.current.humidityPercent}%`, unit: 'KELEMBABAN', accent: 'teal-500', top: 'from-teal-500/0 via-teal-400 to-teal-500/0' },
+                  { icon: <Wind    size={18} className="text-slate-400" />, value: weather.current.windSpeed, unit: 'KM/J ANGIN',  accent: 'slate-500',  top: 'from-slate-500/0 via-slate-400 to-slate-500/0'  },
+                ].map((m) => (
+                  <div key={m.unit} className="hover-lift p-4 rounded-2xl bg-[#050b14]/60 border border-slate-800/60 flex flex-col items-center justify-center relative overflow-hidden group cursor-default">
+                    <div className={`absolute top-0 w-full h-[2px] bg-gradient-to-r ${m.top} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                    <div className="mb-2 opacity-80 group-hover:opacity-100 transition-opacity">{m.icon}</div>
+                    <div className="text-2xl md:text-3xl font-black text-white tabular-nums">{m.value}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500 mt-1 font-semibold">{m.unit}</div>
+                  </div>
+                ))}
               </div>
 
               {/* 7 Day Chart */}
@@ -579,10 +571,11 @@ export default function DashboardPage() {
                       <motion.div
                         initial={{ height: 0 }}
                         animate={{ height: `${Math.max(12, (d.rainfallMm / maxRain) * 100)}%` }}
-                        transition={{ delay: 0.2 + (i * 0.05), type: 'spring', stiffness: 100 }}
-                        className="w-full max-w-[40px] bg-gradient-to-t from-blue-900/50 to-blue-500/80 rounded-t-md border-t border-x border-blue-400/30 group-hover:to-cyan-400/80 transition-colors relative overflow-hidden"
+                        transition={{ delay: 0.2 + (i * 0.05), type: 'spring', stiffness: 120, damping: 14 }}
+                        className="w-full max-w-[40px] rounded-t-lg relative overflow-hidden group-hover:brightness-125 transition-all duration-200"
+                        style={{ background: 'linear-gradient(to top, rgba(30,58,138,0.6), rgba(59,130,246,0.85))', boxShadow: '0 -2px 8px rgba(59,130,246,0.3)' }}
                       >
-                        <div className="absolute top-0 left-0 w-full h-[1px] bg-white/40" />
+                        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
                       </motion.div>
                       <span className="text-[10px] text-slate-500 mt-3 font-medium">{d.date}</span>
                     </div>
@@ -611,23 +604,23 @@ export default function DashboardPage() {
               <div className="grid md:grid-cols-2 gap-8 mb-6">
                 <div className="space-y-6">
                   {[
-                    { label: 'Indeks Risiko Kekeringan', value: weather.risk.droughtRiskScore, color: 'from-amber-600 to-orange-500', glow: 'rgba(249,115,22,0.3)' },
-                    { label: 'Indeks Risiko Banjir', value: weather.risk.excessRainRiskScore, color: 'from-blue-600 to-indigo-500', glow: 'rgba(99,102,241,0.3)' },
-                    { label: 'Skor Risiko Komposit', value: weather.risk.overallRiskScore, color: `from-orange-600 to-red-500`, glow: 'rgba(239,68,68,0.3)' }
+                    { label: 'Indeks Risiko Kekeringan', value: weather.risk.droughtRiskScore,  grad: 'linear-gradient(to right,#d97706,#f97316)', glow: 'rgba(249,115,22,0.4)' },
+                    { label: 'Indeks Risiko Banjir',     value: weather.risk.excessRainRiskScore,grad: 'linear-gradient(to right,#2563eb,#6366f1)',   glow: 'rgba(99,102,241,0.4)'  },
+                    { label: 'Skor Risiko Komposit',     value: weather.risk.overallRiskScore,   grad: 'linear-gradient(to right,#ea580c,#dc2626)',   glow: 'rgba(239,68,68,0.4)'   },
                   ].map((r, i) => (
                     <div key={r.label}>
                       <div className="flex justify-between items-baseline mb-2">
-                        <span className="text-xs font-semibold text-slate-400 tracking-wide uppercase">{r.label}</span>
-                        <span className="font-black text-white text-lg">{r.value.toFixed(0)}<span className="text-xs text-slate-500 font-normal">/100</span></span>
+                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">{r.label}</span>
+                        <span className="font-black text-white text-lg tabular-nums">{r.value.toFixed(0)}<span className="text-xs text-slate-500 font-normal ml-0.5">/100</span></span>
                       </div>
-                      <div className="h-2 bg-[#050b14] rounded-full overflow-hidden border border-slate-800/80 shadow-inner p-[1px]">
+                      <div className="progress-track">
                         <motion.div
-                          initial={{ width: 0 }} animate={{ width: `${r.value}%` }} transition={{ delay: 0.5 + (i * 0.1), duration: 1 }}
-                          className={`h-full bg-gradient-to-r ${r.color} rounded-full relative`}
-                          style={{ boxShadow: `0 0 10px ${r.glow}` }}
-                        >
-                          <div className="absolute top-0 right-0 bottom-0 w-4 bg-white/20 blur-[2px]" />
-                        </motion.div>
+                          initial={{ width: 0 }}
+                          animate={{ width: `${r.value}%` }}
+                          transition={{ delay: 0.45 + i * 0.12, duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                          className="progress-fill"
+                          style={{ background: r.grad, boxShadow: `0 0 12px ${r.glow}` }}
+                        />
                       </div>
                     </div>
                   ))}
