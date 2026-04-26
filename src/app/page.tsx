@@ -6,7 +6,7 @@ import { motion, useInView } from 'framer-motion'
 import { Leaf, Shield, TrendingUp, Zap, CloudRain, ChevronRight, Activity, Globe, ArrowUpRight, Lock, Cpu } from 'lucide-react'
 import { useWallet } from '../providers/WalletProvider'
 import Navbar from '../components/Navbar'
-import { PROGRAM_ID_STR } from '../utils/constants'
+import { PROGRAM_ID_STR, DEPLOY_TX_SIG, DEPLOY_SLOT, DEPLOY_DATE } from '../utils/constants'
 import { isProtocolProgramDeployed } from '../utils/solana'
 import { getApiUrl } from '../utils/api'
 
@@ -314,7 +314,8 @@ export default function HomePage() {
 
               {[
                 { label: 'Program ID',       value: `${PROGRAM_ID_STR.slice(0,10)}…${PROGRAM_ID_STR.slice(-6)}`, href: `https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`, color: 'text-emerald-300' },
-                { label: 'Data Source',      value: 'oracle.bmkg.go.id', color: 'text-blue-300'   },
+                { label: 'Deploy Tx',        value: `${DEPLOY_TX_SIG.slice(0,10)}…${DEPLOY_TX_SIG.slice(-6)}`, href: `https://explorer.solana.com/tx/${DEPLOY_TX_SIG}?cluster=devnet`, color: 'text-purple-300' },
+                { label: 'Deploy Slot',      value: `#${DEPLOY_SLOT.toLocaleString()} · ${DEPLOY_DATE}`, color: 'text-slate-400' },
                 { label: 'Settlement Asset', value: 'USDC (SPL Token)',  color: 'text-teal-300'   },
                 { label: 'Framework',        value: 'Anchor v0.30 / Rust', color: 'text-slate-300' },
               ].map(row => (
