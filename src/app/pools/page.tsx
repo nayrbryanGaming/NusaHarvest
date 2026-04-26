@@ -361,7 +361,7 @@ export default function PoolsPage() {
       
       <Navbar />
 
-      <div className="pt-32 px-6 max-w-7xl mx-auto">
+      <div className="pt-36 px-6 max-w-7xl mx-auto">
         <header className="mb-12">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2 mb-4">
             <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">

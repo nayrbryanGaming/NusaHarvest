@@ -45,12 +45,11 @@ const ITEM = {
 const INSURANCE_ORDER = {
   commodityLabel: 'Padi Ciherang',
   commoditySymbol: 'RICE',
-  coveredHectares: 1,
   triggerType: 'RAINFALL_DEFICIT' as const,
   triggerThresholdMm: 40,
   payoutPerHectareUsdc: 500,
   coverageDays: 120,
-  displayPremiumUsdc: 38.5,
+  premiumPerHectareUsdc: 2.5,   // ≈ Rp 38.000 / ha at ~15,800 IDR/USDC
   latitude: -7.7078,
   longitude: 110.6101
 }
@@ -150,9 +149,10 @@ export default function DashboardPage() {
   const [activePolicy, setActivePolicy] = useState(false)
   const [policyTx, setPolicyTx] = useState('')
   const [policyId, setPolicyId] = useState('')
-  const [premiumUsdc, setPremiumUsdc] = useState(INSURANCE_ORDER.displayPremiumUsdc)
+  const [premiumUsdc, setPremiumUsdc] = useState(INSURANCE_ORDER.premiumPerHectareUsdc)
   const [maxPayoutUsdc, setMaxPayoutUsdc] = useState(INSURANCE_ORDER.payoutPerHectareUsdc)
   const [coverageLabel, setCoverageLabel] = useState('Aktif 120 Hari')
+  const [selectedHectares, setSelectedHectares] = useState(1)
   const [buyingInsurance, setBuyingInsurance] = useState(false)
   const [programReady, setProgramReady] = useState<boolean | null>(null)
 
@@ -249,7 +249,7 @@ export default function DashboardPage() {
     setActivePolicy(false)
     setPolicyId('')
     setPolicyTx('')
-    setPremiumUsdc(INSURANCE_ORDER.displayPremiumUsdc)
+    setPremiumUsdc(INSURANCE_ORDER.premiumPerHectareUsdc)
     setMaxPayoutUsdc(INSURANCE_ORDER.payoutPerHectareUsdc)
     setCoverageLabel('Aktif 120 Hari')
   }, [programReady, publicKey])
@@ -259,7 +259,7 @@ export default function DashboardPage() {
       setActivePolicy(false)
       setPolicyId('')
       setPolicyTx('')
-      setPremiumUsdc(INSURANCE_ORDER.displayPremiumUsdc)
+      setPremiumUsdc(INSURANCE_ORDER.premiumPerHectareUsdc)
       setMaxPayoutUsdc(INSURANCE_ORDER.payoutPerHectareUsdc)
       setCoverageLabel('Aktif 120 Hari')
       return
@@ -269,7 +269,7 @@ export default function DashboardPage() {
       setActivePolicy(false)
       setPolicyId('')
       setPolicyTx('')
-      setPremiumUsdc(INSURANCE_ORDER.displayPremiumUsdc)
+      setPremiumUsdc(INSURANCE_ORDER.premiumPerHectareUsdc)
       setMaxPayoutUsdc(INSURANCE_ORDER.payoutPerHectareUsdc)
       setCoverageLabel('Aktif 120 Hari')
       return
@@ -336,11 +336,11 @@ export default function DashboardPage() {
           writeLocalPolicy(publicKey, {
             policyId: latestPolicy.policyId,
             status: latestPolicy.status,
-            premiumPaidUsdc: typeof latestPolicy.premiumPaidUsdc === 'number' ? latestPolicy.premiumPaidUsdc : INSURANCE_ORDER.displayPremiumUsdc,
+            premiumPaidUsdc: typeof latestPolicy.premiumPaidUsdc === 'number' ? latestPolicy.premiumPaidUsdc : selectedHectares * INSURANCE_ORDER.premiumPerHectareUsdc,
             maxPayoutUsdc:
               typeof latestPolicy.maxPayoutUsdc === 'number'
                 ? latestPolicy.maxPayoutUsdc
-                : INSURANCE_ORDER.payoutPerHectareUsdc * INSURANCE_ORDER.coveredHectares,
+                : INSURANCE_ORDER.payoutPerHectareUsdc * selectedHectares,
             txSignature: validTxSignature,
             coverageStartDate: latestPolicy.coverageStartDate || new Date().toISOString(),
             coverageEndDate: latestPolicy.coverageEndDate || new Date().toISOString()
@@ -391,7 +391,7 @@ export default function DashboardPage() {
         commodity: INSURANCE_ORDER.commoditySymbol,
         triggerThreshold: INSURANCE_ORDER.triggerThresholdMm,
         payoutPerHectare: INSURANCE_ORDER.payoutPerHectareUsdc,
-        premium: INSURANCE_ORDER.displayPremiumUsdc
+        premium: selectedHectares * INSURANCE_ORDER.premiumPerHectareUsdc
       })
 
       const signedResult = await signAndSendTransaction(transaction)
@@ -417,7 +417,7 @@ export default function DashboardPage() {
             body: JSON.stringify({
               walletAddress: publicKey,
               commodity: INSURANCE_ORDER.commoditySymbol,
-              hectares: INSURANCE_ORDER.coveredHectares,
+              hectares: selectedHectares,
               latitude: INSURANCE_ORDER.latitude,
               longitude: INSURANCE_ORDER.longitude,
               triggerType: INSURANCE_ORDER.triggerType,
@@ -447,9 +447,9 @@ export default function DashboardPage() {
       const snapshot: LocalPolicySnapshot = {
         policyId: purchasedPolicy?.policyId || `POL-${Date.now().toString(36).toUpperCase()}`,
         status: purchasedPolicy?.status || 'ACTIVE',
-        premiumPaidUsdc: purchasedPolicy?.premiumPaidUsdc ?? INSURANCE_ORDER.displayPremiumUsdc,
+        premiumPaidUsdc: purchasedPolicy?.premiumPaidUsdc ?? selectedHectares * INSURANCE_ORDER.premiumPerHectareUsdc,
         maxPayoutUsdc:
-          purchasedPolicy?.maxPayoutUsdc ?? INSURANCE_ORDER.payoutPerHectareUsdc * INSURANCE_ORDER.coveredHectares,
+          purchasedPolicy?.maxPayoutUsdc ?? INSURANCE_ORDER.payoutPerHectareUsdc * selectedHectares,
         txSignature: purchasedPolicy?.txSignature || txSignature,
         coverageStartDate: purchasedPolicy?.coverageStartDate || now.toISOString(),
         coverageEndDate: purchasedPolicy?.coverageEndDate || coverageEnd.toISOString()
@@ -490,7 +490,7 @@ export default function DashboardPage() {
 
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-6 pt-28 pb-12">
+      <div className="max-w-7xl mx-auto px-6 pt-36 pb-12">
         {/* Header Area */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
           <div>
@@ -671,7 +671,7 @@ export default function DashboardPage() {
                       <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 uppercase tracking-widest"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> AKTIF</span>
                     </div>
                     <p className="text-sm font-medium text-slate-400 mt-2">{INSURANCE_ORDER.commodityLabel}</p>
-                    <p className="text-2xl font-black text-white mt-0.5">{INSURANCE_ORDER.coveredHectares} Hektar</p>
+                    <p className="text-2xl font-black text-white mt-0.5">{selectedHectares} Hektar</p>
                     <div className="w-full h-[1px] bg-slate-800 my-4" />
                     <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Periode Coverage</p>
                     <p className="text-sm font-medium text-slate-300">{coverageLabel}</p>
@@ -714,28 +714,42 @@ export default function DashboardPage() {
                       <span className="text-sm font-semibold text-slate-400">Komoditas</span>
                       <span className="text-sm font-bold text-white">{INSURANCE_ORDER.commodityLabel}</span>
                     </div>
+                    {/* Hectare Selector */}
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-semibold text-slate-400">Luas Lahan</span>
-                      <span className="text-sm font-bold text-white bg-slate-800 px-2 py-0.5 rounded">{INSURANCE_ORDER.coveredHectares} Hektar</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedHectares(h => Math.max(1, h - 1))}
+                          className="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm flex items-center justify-center transition-colors"
+                        >−</button>
+                        <span className="text-sm font-black text-white w-16 text-center bg-slate-800 rounded-lg py-0.5">{selectedHectares} Ha</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedHectares(h => Math.min(50, h + 1))}
+                          className="w-7 h-7 rounded-lg bg-slate-700 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center transition-colors"
+                        >+</button>
+                      </div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-semibold text-slate-400">Maks. Rekayasa</span>
-                      <span className="text-sm font-black text-emerald-400">{formatUsdc(maxPayoutUsdc)}</span>
+                      <span className="text-sm font-semibold text-slate-400">Maks. Payout</span>
+                      <span className="text-sm font-black text-emerald-400">{formatUsdc(selectedHectares * INSURANCE_ORDER.payoutPerHectareUsdc)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-semibold text-slate-400">Trigger</span>
-                      <span className="text-xs font-bold text-amber-400 bg-amber-900/30 px-2.5 py-1 rounded border border-amber-500/20">&lt; {INSURANCE_ORDER.triggerThresholdMm}mm dalam 30 hari</span>
+                      <span className="text-xs font-bold text-amber-400 bg-amber-900/30 px-2.5 py-1 rounded border border-amber-500/20">&lt; {INSURANCE_ORDER.triggerThresholdMm}mm / 30h</span>
                     </div>
                   </div>
 
                   <div className="p-5 rounded-2xl bg-gradient-to-br from-[#050b14] to-slate-900 border border-emerald-900/40">
                     <div className="flex justify-between items-baseline mb-1">
-                      <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Premi Total</span>
-                      <span className="text-lg font-black text-white">{formatUsdc(premiumUsdc)}</span>
+                      <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Premi / Ha</span>
+                      <span className="text-lg font-black text-white">{formatUsdc(selectedHectares * INSURANCE_ORDER.premiumPerHectareUsdc)}</span>
                     </div>
-                    <div className="flex items-start gap-2 mt-3 p-2 bg-emerald-900/20 rounded-lg border border-emerald-500/20">
+                    <p className="text-[10px] text-slate-500 mb-3">≈ Rp {(selectedHectares * INSURANCE_ORDER.premiumPerHectareUsdc * 15800).toLocaleString('id-ID')} · kurs ~15.800 IDR/USDC</p>
+                    <div className="flex items-start gap-2 p-2 bg-emerald-900/20 rounded-lg border border-emerald-500/20">
                       <Zap size={14} className="text-emerald-400 shrink-0 mt-0.5" />
-                      <p className="text-[10px] text-emerald-300 leading-tight">50% premi disubsidi otomatis oleh Nusa Harvest Yield Pool. Petani membayar {formatUsdc(premiumUsdc)}.</p>
+                      <p className="text-[10px] text-emerald-300 leading-tight">50% premi disubsidi otomatis dari Yield Pool. Dibayar dalam USDC Devnet.</p>
                     </div>
                   </div>
 

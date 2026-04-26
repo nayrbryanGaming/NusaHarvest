@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google'
 import { WalletProvider } from '../providers/WalletProvider'
 import { Toaster } from 'react-hot-toast'
 import ClientIntegrityGuard from '../components/ClientIntegrityGuard'
+import HeroBar from '../components/HeroBar'
 import '../styles/globals.css'
 
 const inter = Inter({
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="id" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className={`${inter.className} antialiased`}>
         <ClientIntegrityGuard />
+        <HeroBar />
         <WalletProvider>
           <Toaster
             position="top-right"

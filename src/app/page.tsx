@@ -3,13 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion, useInView } from 'framer-motion'
-import { Leaf, Shield, TrendingUp, Zap, CloudRain, ChevronRight, Activity, Globe, ArrowUpRight, Lock, Cpu } from 'lucide-react'
+import { Leaf, Shield, Zap, CloudRain, ChevronRight, Activity, Globe, ArrowUpRight, Lock, Cpu } from 'lucide-react'
 import { useWallet } from '../providers/WalletProvider'
 import Navbar from '../components/Navbar'
-import HeroBar from '../components/HeroBar'
 import { PROGRAM_ID_STR, DEPLOY_TX_SIG, DEPLOY_SLOT, DEPLOY_DATE } from '../utils/constants'
 import { isProtocolProgramDeployed } from '../utils/solana'
-import { getApiUrl } from '../utils/api'
 
 /* ─── Animation Presets ─────────────────────────────────────── */
 const FV = (delay = 0) => ({
@@ -52,8 +50,6 @@ const CAPABILITIES = [
   { icon: Leaf,  title: 'Komoditas Premium',            desc: 'Coverage eksklusif untuk Padi, Kopi Robusta & Kelapa Sawit.' },
 ]
 
-type LiveStats = { farmerCount: string; tvl: string; networkStatus: string }
-
 /* ─── Animated Counter ─────────────────────────────────────── */
 function AnimatedNumber({ value, suffix = '' }: { value: string; suffix?: string }) {
   const ref    = useRef<HTMLSpanElement>(null)
@@ -67,8 +63,7 @@ function AnimatedNumber({ value, suffix = '' }: { value: string; suffix?: string
 
 export default function HomePage() {
   const { publicKey, connected } = useWallet()
-  const [programReady,   setProgramReady]   = useState<boolean | null>(null)
-  const [liveStats,      setLiveStats]      = useState<LiveStats>({ farmerCount: '...', tvl: '...', networkStatus: '...' })
+  const [programReady, setProgramReady] = useState<boolean | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -78,33 +73,11 @@ export default function HomePage() {
     return () => { cancelled = true }
   }, [])
 
-  useEffect(() => {
-    let cancelled = false
-    const fetchStats = async () => {
-      const url = getApiUrl('/api/pool/metrics')
-      if (!url) { if (!cancelled) setLiveStats({ farmerCount: '0', tvl: '$0.00', networkStatus: 'Devnet' }); return }
-      try {
-        const res  = await fetch(url)
-        if (!res.ok) throw new Error()
-        const payload = await res.json()
-        if (!payload?.success) throw new Error()
-        const d = payload.data
-        if (!cancelled) setLiveStats({
-          farmerCount: String(d.insurance?.activePolicies ?? 0),
-          tvl:  `$${Number(d.finance?.totalTvlUsdc ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-          networkStatus: 'Active'
-        })
-      } catch { if (!cancelled) setLiveStats({ farmerCount: '0', tvl: '$0.00', networkStatus: 'Devnet' }) }
-    }
-    void fetchStats()
-    return () => { cancelled = true }
-  }, [])
-
   const STATS = [
-    { label: 'Active Policies', value: liveStats.farmerCount, icon: Leaf,       accent: 'emerald' },
-    { label: 'Total Value Locked', value: liveStats.tvl,       icon: TrendingUp, accent: 'teal'    },
-    { label: 'Avg. Settlement',  value: '< 2 Jam',             icon: Zap,        accent: 'amber'   },
-    { label: 'Network',          value: liveStats.networkStatus,icon: Globe,      accent: 'indigo'  },
+    { label: 'Pilot Region',    value: 'Jawa Tengah',  icon: Globe,      accent: 'emerald' },
+    { label: 'Environment',     value: 'Devnet Sim',   icon: Activity,   accent: 'teal'    },
+    { label: 'Settlement',      value: '< 2 Jam',      icon: Zap,        accent: 'amber'   },
+    { label: 'Oracle',          value: 'BMKG Active',  icon: CloudRain,  accent: 'indigo'  },
   ]
 
   const accentMap: Record<string, string> = {
@@ -123,11 +96,10 @@ export default function HomePage() {
         <div className="absolute top-[50%] left-[-5%] w-[400px] h-[400px] bg-indigo-600/5 blur-[100px] rounded-full" />
       </div>
 
-      <HeroBar />
       <Navbar />
 
       {/* ── Hero ────────────────────────────────────── */}
-      <section className="relative pt-44 pb-16 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+      <section className="relative pt-36 pb-16 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
         {/* Background grid */}
         <div className="absolute inset-0 bg-grid-dark bg-[size:48px_48px] opacity-60 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_50%,transparent_100%)]" />
 

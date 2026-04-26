@@ -276,7 +276,7 @@ export default function AdminDashboard() {
       
       <Navbar />
 
-      <div className="pt-28 px-6 max-w-7xl mx-auto">
+      <div className="pt-36 px-6 max-w-7xl mx-auto">
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <h1 className="text-4xl font-black mb-2 tracking-tighter">Command <span className="text-emerald-400">Center</span></h1>

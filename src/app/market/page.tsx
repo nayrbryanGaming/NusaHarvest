@@ -146,7 +146,7 @@ export default function MarketPage() {
       
       <Navbar />
 
-      <div className="pt-32 px-6 max-w-7xl mx-auto">
+      <div className="pt-36 px-6 max-w-7xl mx-auto">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <h1 className="text-4xl font-black mb-2 italic">Commodity <span className="text-emerald-400">Price Matrix</span></h1>
