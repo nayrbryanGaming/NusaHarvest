@@ -47,7 +47,7 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 w-full z-50 transition-all duration-300 navbar-blur
+      className={`fixed top-9 w-full z-50 transition-all duration-300 navbar-blur
         ${scrolled
           ? 'bg-[#050b14]/90 border-b border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.4)]'
           : 'bg-[#050b14]/70 border-b border-white/[0.03]'

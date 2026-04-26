@@ -6,6 +6,7 @@ import { motion, useInView } from 'framer-motion'
 import { Leaf, Shield, TrendingUp, Zap, CloudRain, ChevronRight, Activity, Globe, ArrowUpRight, Lock, Cpu } from 'lucide-react'
 import { useWallet } from '../providers/WalletProvider'
 import Navbar from '../components/Navbar'
+import HeroBar from '../components/HeroBar'
 import { PROGRAM_ID_STR, DEPLOY_TX_SIG, DEPLOY_SLOT, DEPLOY_DATE } from '../utils/constants'
 import { isProtocolProgramDeployed } from '../utils/solana'
 import { getApiUrl } from '../utils/api'
@@ -49,17 +50,6 @@ const CAPABILITIES = [
   { icon: Lock,  title: 'Smart Contract Audit',       desc: 'Arsitektur Solana Anchor v0.30 yang secure by design.' },
   { icon: Cpu,   title: 'Machine Learning Risk Engine', desc: 'Pemodelan risiko presisi menggunakan ENSO index dan historis 20 tahun BMKG.' },
   { icon: Leaf,  title: 'Komoditas Premium',            desc: 'Coverage eksklusif untuk Padi, Kopi Robusta & Kelapa Sawit.' },
-]
-
-const TICKER_ITEMS = [
-  '🌾 PADI CIHERANG — Terlindungi',
-  '☕ KOPI ROBUSTA — Terlindungi',
-  '🌴 KELAPA SAWIT — Terlindungi',
-  '⚡ PAYOUT < 2 JAM',
-  '🔒 ANCHOR v0.30 AUDIT',
-  '📡 BMKG REAL-TIME',
-  '💵 SETTLEMENT USDC',
-  '🔗 SOLANA DEVNET',
 ]
 
 type LiveStats = { farmerCount: string; tvl: string; networkStatus: string }
@@ -133,10 +123,11 @@ export default function HomePage() {
         <div className="absolute top-[50%] left-[-5%] w-[400px] h-[400px] bg-indigo-600/5 blur-[100px] rounded-full" />
       </div>
 
+      <HeroBar />
       <Navbar />
 
       {/* ── Hero ────────────────────────────────────── */}
-      <section className="relative pt-36 pb-16 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+      <section className="relative pt-44 pb-16 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
         {/* Background grid */}
         <div className="absolute inset-0 bg-grid-dark bg-[size:48px_48px] opacity-60 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_50%,transparent_100%)]" />
 
@@ -184,22 +175,6 @@ export default function HomePage() {
           </motion.div>
         )}
       </section>
-
-      {/* ── Ticker ──────────────────────────────────── */}
-      <div className="section-divider mb-0" />
-      <div className="py-3 bg-[#02050a]/60 overflow-hidden relative border-y border-white/[0.04]">
-        <div className="ticker-wrap">
-          <div className="ticker-content">
-            {[...TICKER_ITEMS, ...TICKER_ITEMS].map((t, i) => (
-              <span key={i} className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                {t}
-                <span className="mx-6 text-emerald-900">◆</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="section-divider mt-0" />
 
       {/* ── Stats Matrix ─────────────────────────────── */}
       <section className="relative z-10 max-w-7xl mx-auto px-6 py-20">
