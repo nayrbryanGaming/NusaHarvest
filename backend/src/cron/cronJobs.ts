@@ -1,5 +1,6 @@
 import cron from 'node-cron'
 import { evaluateAllActivePolicies } from '../services/insuranceEngine'
+import { indexAllPools, syncAdminMetrics } from '../services/solanaIndexer'
 import { logger } from '../utils/logger'
 import { getWeatherForecast, storeWeatherReading } from '../services/weatherService'
 import { prisma } from '../utils/prisma'
@@ -12,6 +13,14 @@ const PILOT_COORDINATES = [
 ]
 
 export function startCronJobs() {
+  // ── Every 30 minutes: Index all pools from smart contract ──────────────────
+  cron.schedule('*/30 * * * *', async () => {
+    logger.info('⛓️ CRON: Indexing pools from smart contract...')
+    await indexAllPools()
+    await syncAdminMetrics()
+    logger.info('⛓️ CRON: Pool indexing complete.')
+  })
+
   // ── Daily 07:00 WIB: Refresh weather for all active farm locations ────────
   cron.schedule('0 0 * * *', async () => {  // 00:00 UTC = 07:00 WIB
     logger.info('🌦 CRON: Starting daily weather data refresh...')
@@ -47,5 +56,5 @@ export function startCronJobs() {
     logger.info('📋 CRON: Policy evaluation complete.')
   })
 
-  logger.info('⏰ Cron jobs scheduled: weather refresh (07:00 WIB), policy evaluation (08:00 WIB)')
+  logger.info('⏰ Cron jobs scheduled: on-chain indexing (every 30 min), weather refresh (07:00 WIB), policy evaluation (08:00 WIB)')
 }
