@@ -1,0 +1,24 @@
+[toolchain]
+anchor_version = "0.32.1"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+nusa_harvest_insurance = "H6snTB1Akud3SLgZTvg7mdTojVEVRuYEZR8KHYRStKsh"
+nusa_harvest_pool = "3E4wxrT28UqM2ua9n2XnzMMdGoyuR7qZ9VtXQ29XGAgt"
+nusa_harvest_vault = "ErGh9gyqBxmrxv7h5ETUzk88ig2dtvc9heCk1dasJhTC"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/deploy-wallet.json"
+
+[workspace]
+members = ["programs/nusa_harvest_pool", "programs/nusa_harvest_insurance", "programs/nusa_harvest_vault"]
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

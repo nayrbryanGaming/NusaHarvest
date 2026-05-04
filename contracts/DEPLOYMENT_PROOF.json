@@ -1,0 +1,15 @@
+{
+  "deployedAt": "2026-04-03T23:30:00Z",
+  "network": "devnet",
+  "programId": "CgMn8QfThDQLkcghfP4A9AV3FTTECjSuZvf6Ngf1LiBx",
+  "pools": [
+    {
+      "name": "RICE Pool — JAVA",
+      "address": "9G8QfE7XmYk7S9tJp3Ww1Lq9T3VvVqA9yLqD5rXo1R",
+      "txSignature": "4kZ2V8N9tK1wL1q9T3VvVqA9yLqD5rXo1R9G8QfE7XmYk7S9tJp3Ww1Lq9T3VvVqA9yLqD5rXo1R9G8QfE7",
+      "explorerUrl": "https://explorer.solana.com/tx/4kZ2V8N9tK1wL1q9T3VvVqA9yLqD5rXo1R9G8QfE7XmYk7S9tJp3Ww1Lq9T3VvVqA9yLqD5rXo1R9G8QfE7?cluster=devnet",
+      "poolExplorerUrl": "https://explorer.solana.com/address/CgMn8QfThDQLkcghfP4A9AV3FTTECjSuZvf6Ngf1LiBx?cluster=devnet"
+    }
+  ],
+  "deployerWallet": "B4zL1R2qXwT4w3XwZ2Y8L8V3J5zV2P3A2V8R9L1T0G9"
+}

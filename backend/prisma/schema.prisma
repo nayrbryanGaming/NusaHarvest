@@ -1,0 +1,331 @@
+// Nusa Harvest — PostgreSQL Schema via Prisma ORM
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// USER MANAGEMENT
+// ─────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  phone         String?   @unique
+  passwordHash  String
+  role          UserRole  @default(FARMER)
+  walletAddress String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  farmer        Farmer?
+  investor      Investor?
+  cooperative   Cooperative?
+
+  @@map("users")
+}
+
+enum UserRole {
+  FARMER
+  INVESTOR
+  COOPERATIVE_ADMIN
+  PROTOCOL_ADMIN
+}
+
+// ─────────────────────────────────────────
+// FARMER ENTITIES
+// ─────────────────────────────────────────
+
+model Farmer {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  nik           String   @unique  // Indonesian National ID
+  fullName      String
+  province      String
+  district      String
+  village       String
+  cooperativeId String?
+  cooperative   Cooperative? @relation(fields: [cooperativeId], references: [id])
+  createdAt     DateTime @default(now())
+
+  farms         Farm[]
+  policies      InsurancePolicy[]
+
+  @@map("farmers")
+}
+
+model Farm {
+  id            String    @id @default(uuid())
+  farmerId      String
+  farmer        Farmer    @relation(fields: [farmerId], references: [id])
+  name          String
+  latitude      Float
+  longitude     Float
+  areaHectares  Float
+  landTitle     String?   // Sertifikat HM/HGU number
+  soilType      String?
+  irrigationType String?
+  createdAt     DateTime  @default(now())
+
+  crops         Crop[]
+  policies      InsurancePolicy[]
+  weatherReadings WeatherData[]
+
+  @@map("farms")
+}
+
+model Crop {
+  id              String   @id @default(uuid())
+  farmId          String
+  farm            Farm     @relation(fields: [farmId], references: [id])
+  cropType        CropType
+  plantingDate    DateTime
+  expectedHarvestDate DateTime
+  varietyName     String?
+  areaHectares    Float
+  status          CropStatus @default(PLANTED)
+  createdAt       DateTime @default(now())
+
+  yieldPredictions YieldPrediction[]
+  policies         InsurancePolicy[]
+
+  @@map("crops")
+}
+
+enum CropType {
+  RICE
+  CORN
+  COFFEE_ROBUSTA
+  COFFEE_ARABICA
+  PALM_OIL
+  RUBBER
+  COCOA
+  SOYBEAN
+}
+
+enum CropStatus {
+  PLANTED
+  VEGETATIVE
+  FLOWERING
+  GRAIN_FILLING
+  HARVESTED
+  FAILED
+}
+
+// ─────────────────────────────────────────
+// COOPERATIVE
+// ─────────────────────────────────────────
+
+model Cooperative {
+  id              String   @id @default(uuid())
+  adminUserId     String   @unique
+  adminUser       User     @relation(fields: [adminUserId], references: [id])
+  name            String
+  registrationNo  String   @unique
+  province        String
+  district        String
+  walletAddress   String?
+  totalMembers    Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  farmers         Farmer[]
+  bulkPolicies    InsurancePolicy[]
+
+  @@map("cooperatives")
+}
+
+// ─────────────────────────────────────────
+// WEATHER DATA
+// ─────────────────────────────────────────
+
+model WeatherData {
+  id              String   @id @default(uuid())
+  farmId          String?
+  farm            Farm?    @relation(fields: [farmId], references: [id])
+  latitude        Float
+  longitude       Float
+  regionCode      String   // Maps to BMKG grid code
+  recordedAt      DateTime
+  rainfallMm      Float    // mm in measurement period
+  temperatureCelsius Float
+  humidityPercent Float
+  windSpeedKmh    Float?
+  droughtIndex    Float?   // Standardized Precipitation Index (SPI)
+  dataSource      WeatherSource @default(OPENWEATHER)
+  isVerified      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([regionCode, recordedAt])
+  @@map("weather_data")
+}
+
+enum WeatherSource {
+  BMKG
+  OPENWEATHER
+  NASA_IMERG
+  ERA5_SATELLITE
+}
+
+// ─────────────────────────────────────────
+// RISK ENGINE OUTPUTS
+// ─────────────────────────────────────────
+
+model YieldPrediction {
+  id              String   @id @default(uuid())
+  cropId          String
+  crop            Crop     @relation(fields: [cropId], references: [id])
+  predictedAt     DateTime @default(now())
+  droughtRiskScore    Float // 0–100
+  excessRainRiskScore Float // 0–100
+  overallRiskScore    Float // 0–100
+  recommendedPremiumUsdc Float
+  forecastPeriodDays Int
+  modelVersion    String   @default("1.0")
+
+  @@map("yield_predictions")
+}
+
+// ─────────────────────────────────────────
+// INSURANCE
+// ─────────────────────────────────────────
+
+model InsurancePolicy {
+  id                  String        @id @default(uuid())
+  farmerId            String
+  farmer              Farmer        @relation(fields: [farmerId], references: [id])
+  farmId              String
+  farm                Farm          @relation(fields: [farmId], references: [id])
+  cropId              String?
+  crop                Crop?         @relation(fields: [cropId], references: [id])
+  cooperativeId       String?
+  cooperative         Cooperative?  @relation(fields: [cooperativeId], references: [id])
+
+  // Policy terms
+  commodity           CropType
+  triggerType         TriggerType
+  triggerThresholdMm  Float         // mm threshold for rainfall triggers
+  triggerThresholdDays Int          @default(30) // rolling window in days
+  coverageStartDate   DateTime
+  coverageEndDate     DateTime
+  coveredHectares     Float
+  payoutPerHectare    Float         // USDC
+  maxPayoutUsdc       Float
+  premiumUsdc         Float
+  premiumPaidUsdc     Float         @default(0)
+
+  // Blockchain
+  onChainPolicyId     String?       @unique // Solana account address
+  txSignature         String?       // Transaction hash on devnet/mainnet
+  poolId              String?
+  pool                YieldPool?    @relation(fields: [poolId], references: [id])
+
+  status              PolicyStatus  @default(PENDING_PAYMENT)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  claims              Claim[]
+
+  @@map("insurance_policies")
+}
+
+enum TriggerType {
+  RAINFALL_DEFICIT   // drought
+  EXCESS_RAINFALL    // flood
+  PRICE_FLOOR        // commodity price drops below threshold
+}
+
+enum PolicyStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  TRIGGERED
+  EXPIRED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────
+// CLAIMS
+// ─────────────────────────────────────────
+
+model Claim {
+  id              String      @id @default(uuid())
+  policyId        String
+  policy          InsurancePolicy @relation(fields: [policyId], references: [id])
+  triggeredAt     DateTime    @default(now())
+  triggerValue    Float       // Actual rainfall value that triggered
+  payoutUsdc      Float
+  txSignature     String?     // Solana tx hash of payout
+  status          ClaimStatus @default(PROCESSING)
+  processedAt     DateTime?
+  notes           String?
+
+  @@map("claims")
+}
+
+enum ClaimStatus {
+  PROCESSING
+  PAID
+  FAILED
+  DISPUTED
+}
+
+// ─────────────────────────────────────────
+// YIELD POOLS (DeFi LP Side)
+// ─────────────────────────────────────────
+
+model YieldPool {
+  id              String   @id @default(uuid())
+  name            String
+  commodity       CropType
+  region          String
+  riskTranche     Int      @default(1) // 1=junior, 2=senior
+  totalDepositedUsdc Float @default(0)
+  availableReserveUsdc Float @default(0)
+  totalClaimsPaidUsdc  Float @default(0)
+  currentApyBps   Int      @default(800) // basis points — 800 = 8% APY
+  onChainPoolAddress String? @unique
+  isPaused        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  investments     Investment[]
+  policies        InsurancePolicy[]
+
+  @@map("yield_pools")
+}
+
+model Investment {
+  id              String   @id @default(uuid())
+  poolId          String
+  pool            YieldPool @relation(fields: [poolId], references: [id])
+  investorId      String
+  investor        Investor  @relation(fields: [investorId], references: [id])
+  amountUsdc      Float
+  shares          Float     // LP share tokens
+  depositedAt     DateTime  @default(now())
+  withdrawnAt     DateTime?
+  earnedYieldUsdc Float     @default(0)
+  txSignature     String?
+
+  @@map("investments")
+}
+
+model Investor {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  walletAddress   String   @unique
+  totalDepositedUsdc Float @default(0)
+  totalEarnedUsdc Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  investments     Investment[]
+
+  @@map("investors")
+}

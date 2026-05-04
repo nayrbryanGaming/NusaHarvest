@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg-primary:    #0A0F0A;
+  --color-bg-secondary:  #0D1410;
+  --color-bg-elevated:   #111A12;
+  --color-bg-card:       rgba(13, 20, 16, 0.8);
+  --color-border:        rgba(0, 211, 127, 0.12);
+  --color-border-active: rgba(0, 211, 127, 0.40);
+  --color-accent:        #00D37F;
+  --color-accent-teal:   #00B8A9;
+  --color-accent-dim:    rgba(0, 211, 127, 0.15);
+  --color-text-primary:  #FFFFFF;
+  --color-text-secondary: #A8B5A0;
+  --color-text-tertiary:  #6B7D66;
+  --glow-mint: 0 0 20px rgba(0, 211, 127, 0.20);
+  --glow-teal: 0 0 20px rgba(0, 184, 169, 0.20);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  @apply text-slate-200;
+  background-color: var(--color-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-image:
+    radial-gradient(ellipse 70% 50% at 0% 30%, rgba(0, 211, 127, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(0, 184, 169, 0.05) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--color-bg-primary); }
+::-webkit-scrollbar-thumb { background: rgba(52, 211, 153, 0.2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(52, 211, 153, 0.4); }
+
+/* Glassmorphism utilities */
+.glass-panel {
+  @apply bg-[#0a1628]/40 backdrop-blur-xl border border-emerald-900/40 relative overflow-hidden;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.03),
+    transparent
+  );
+  transform: skewX(-20deg);
+  animation: shine 8s infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  20% { left: 200%; }
+  100% { left: 200%; }
+}
+
+/* Glowing text */
+.text-glow {
+  text-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+}
+.text-glow-purple {
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+}
+
+/* ─── Ticker / Marquee ────────────────────────── */
+.ticker-wrap {
+  @apply overflow-hidden relative;
+}
+.ticker-content {
+  display: flex;
+  gap: 3rem;
+  animation: ticker-scroll 28s linear infinite;
+  white-space: nowrap;
+}
+.ticker-wrap:hover .ticker-content { animation-play-state: paused; }
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ─── Stat Counter ────────────────────────────── */
+.stat-number {
+  animation: count-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(12px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Metric Value ────────────────────────────── */
+.metric-value {
+  display: inline-block;
+}

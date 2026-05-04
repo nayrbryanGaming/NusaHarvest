@@ -1,0 +1,22 @@
+node_modules/
+.next/
+.env
+.env.local
+*.local
+dist/
+.cache/
+*.log
+*.tsbuildinfo
+
+# Rust/Anchor build artifacts
+target/
+**/target/
+
+# Solana keypair files (never commit private keys)
+*keypair*.json
+*_wallet.json
+*deployer*.json
+*fee_payer*.json
+wallet.json
+
+.vercel

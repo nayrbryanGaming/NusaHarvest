@@ -1,0 +1,60 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: nusa_harvest_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nusaharvest
+      POSTGRES_PASSWORD: nusaharvest_secret
+      POSTGRES_DB: nusa_harvest
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: nusa_harvest_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nusa_harvest_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://nusaharvest:nusaharvest_secret@postgres:5432/nusa_harvest
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: nusa_harvest_jwt_super_secret_2025
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
+      SOLANA_RPC_URL: https://api.devnet.solana.com
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nusa_harvest_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:4000
+      NEXT_PUBLIC_SOLANA_RPC: https://api.devnet.solana.com
+      NEXT_PUBLIC_NETWORK: devnet
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

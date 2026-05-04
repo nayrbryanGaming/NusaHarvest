@@ -1,0 +1,33 @@
+﻿# Build/runtime outputs
+.next
+node_modules
+
+# Monorepo/other stacks not needed for web deploy
+backend
+contracts
+frontend
+scripts
+
+# Local/editor
+.vscode
+.claude
+
+# Logs and reports
+*.log
+*_proof*.md
+*_REPORT*.md
+*_SPEC*.md
+DEPLOYMENT_*.md
+FINAL_*.md
+MVP_*.md
+OFFICIAL_*.md
+RECOVERY_*.md
+SECTION_*.md
+CTO_*.md
+JUDICIAL_*.md
+
+# Local DB and misc artifacts
+*.sql
+*.bak
+
+# Keep source + package files + config + public assets (if any)

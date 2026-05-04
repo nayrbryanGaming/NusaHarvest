@@ -1,0 +1,14 @@
+.vercel
+.env*.local
+node_modules/
+.next/
+out/
+dist/
+build/
+*.log
+build_error.txt
+build.log
+.env
+.env.local
+.env.development
+.env.production

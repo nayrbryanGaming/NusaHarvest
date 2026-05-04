@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -X POST \"https://api.devnet.solana.com\" -H \"Content-Type: application/json\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"requestAirdrop\",\"params\":[\"G4gqqErtZt249JjZ3H7GQkMoYP6X7xkDqFC7HLBHAAGK\",500000000]}')",
+      "Bash(curl -s -X POST \"https://devnet.helius-rpc.com/?api-key=15319106-0f69-4fa7-9d5b-7d2c1a5c8c83\" -H \"Content-Type: application/json\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"requestAirdrop\",\"params\":[\"G4gqqErtZt249JjZ3H7GQkMoYP6X7xkDqFC7HLBHAAGK\",500000000]}')",
+      "Bash(curl -sI https://nusaharvest.vercel.app)",
+      "Bash(curl -s https://nusaharvest.vercel.app)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm audit *)",
+      "Bash(gh api *)",
+      "Read(//mingw64/**)",
+      "Bash(export PATH=\"/c/Users/arche/AppData/Local/nvm/v24.13.0:$PATH\")",
+      "Bash(npm --version)",
+      "Bash(export SOLANA_BIN=\"/c/Users/arche/.local/share/solana/install/active_release/bin\")",
+      "Bash(export PATH=\"$SOLANA_BIN:/c/Users/arche/AppData/Local/nvm/v24.13.0:$PATH\")"
+    ]
+  }
+}

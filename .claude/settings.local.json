@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(where node *)",
+      "Read(//usr/local/bin/**)",
+      "Read(//c/Program Files/nodejs/**)",
+      "Read(//c/Users/arche/AppData/Roaming/**)",
+      "Read(//c/Users/arche/**)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(\"/c/Users/arche/AppData/Local/ms-playwright-go/1.57.0/node.exe\" node_modules/.bin/tsc --noEmit)"
+    ]
+  }
+}

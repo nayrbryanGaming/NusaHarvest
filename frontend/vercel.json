@@ -1,0 +1,30 @@
+{
+  "framework": "nextjs",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "env": {
+    "NEXT_PUBLIC_SOLANA_NETWORK": "devnet",
+    "NEXT_PUBLIC_SOLANA_RPC_URL": "https://api.devnet.solana.com",
+    "NEXT_PUBLIC_PROGRAM_ID": "D1zZDFSbwLzVswWk3TnqMpFqSSJeu7CGARjju6qQoZYq",
+    "NEXT_PUBLIC_USDC_MINT": "4zMMC9srtVu2nuQJHGGMBVsCLqzr6nYHGL9H5LHvpx5h"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, max-age=0"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
+      ]
+    }
+  ]
+}
