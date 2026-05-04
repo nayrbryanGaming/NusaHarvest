@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Shield, Briefcase, BarChart3,
-  Settings, Map, Activity, ExternalLink, Leaf, Users
+  Settings, Map, Activity, ExternalLink, Users
 } from 'lucide-react'
 import { useWallet } from '../providers/WalletProvider'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -43,21 +43,8 @@ export default function Sidebar() {
   return (
     <aside className="w-[220px] shrink-0 border-r border-white/[0.05] bg-[#0A0F0A] flex flex-col sticky top-[52px] overflow-hidden z-30 h-[calc(100vh-52px)]">
 
-      {/* Brand */}
-      <div className="px-5 pt-5 pb-4 border-b border-white/[0.05]">
-        <Link href="/" className="flex items-center gap-2.5 mb-3 group">
-          <div className="w-7 h-7 bg-emerald-500 rounded-[3px] grid place-items-center shrink-0">
-            <Leaf size={14} className="text-black" />
-          </div>
-          <span className="font-display text-[19px] text-white tracking-tight leading-none">Nusa Harvest</span>
-        </Link>
-        <p className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-slate-600">
-          {t('AgroFi Lending · Devnet', 'AgroFi Lending · Devnet')}
-        </p>
-      </div>
-
       {/* Navigation */}
-      <nav className="flex-1 px-2.5 py-3 space-y-5 overflow-y-auto">
+      <nav className="flex-1 px-2.5 pt-3 pb-3 space-y-5 overflow-y-auto">
         {NAV.map(({ section, items }) => (
           <div key={section}>
             <p className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-slate-600 px-2 pb-1.5">
