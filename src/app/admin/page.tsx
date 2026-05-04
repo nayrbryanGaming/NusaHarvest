@@ -11,7 +11,8 @@ import { useWallet } from '../../providers/WalletProvider'
 import { fetchWithTimeout } from '../../utils/timeout'
 
 const ADMIN_WALLETS = [
-  'ETcQvsQek2w9feLfsqoe4AypCWfnrSwQiv3djqocaP2m',
+  'ETcQvsQek2w9feLfsqoe4AypCWfnrSwQiv3djqocaP2m', // Primary admin (treasury)
+  '35z7X59rtyts557Up1RAwpyYN7x2cFqcDc7RjPuNxFzr', // Secondary admin
 ]
 const ADMIN_SESSION_TTL_MS = 30 * 60 * 1000
 
