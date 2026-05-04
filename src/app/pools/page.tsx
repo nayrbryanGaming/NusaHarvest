@@ -8,6 +8,7 @@ import { AlertTriangle, ArrowUpRight, Briefcase, Loader2, RefreshCw, Shield, Tre
 import toast from 'react-hot-toast'
 import Sidebar from '../../components/Sidebar'
 import { useWallet } from '../../providers/WalletProvider'
+import { useLanguage } from '../../contexts/LanguageContext'
 import { getApiUrl } from '../../utils/api'
 import { PROGRAM_ID_STR, RPC_URL } from '../../utils/constants'
 import { isProtocolProgramDeployed, fetchPoolStateMetrics } from '../../utils/solana'
@@ -36,6 +37,7 @@ function usd(value: number): string {
 
 export default function PoolsPage() {
   const { connected, publicKey, usdcBalance, signAndSendTransaction } = useWallet()
+  const { t } = useLanguage()
 
   const [programReady, setProgramReady] = useState<boolean | null>(null)
   const [stats, setStats] = useState<PoolStats>({
@@ -113,30 +115,30 @@ export default function PoolsPage() {
 
   const handleStake = useCallback(async () => {
     if (!connected || !publicKey) {
-      toast.error('Hubungkan wallet terlebih dahulu')
+      toast.error(t('Hubungkan wallet terlebih dahulu', 'Connect your wallet first'))
       return
     }
 
     if (programReady !== true) {
-      toast.error('Program pool belum siap di jaringan')
+      toast.error(t('Program pool belum siap di jaringan', 'Pool program not ready on network'))
       return
     }
 
     const amount = Number(stakeAmount)
     if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error('Jumlah stake tidak valid')
+      toast.error(t('Jumlah deposit tidak valid', 'Invalid deposit amount'))
       return
     }
 
     if (usdcBalance !== null && amount > usdcBalance) {
-      toast.error('Jumlah stake melebihi saldo USDC')
+      toast.error(t('Jumlah deposit melebihi saldo USDC', 'Deposit amount exceeds USDC balance'))
       return
     }
 
     if (staking) return
 
     setStaking(true)
-    const loadingToast = toast.loading('Menandatangani transaksi stake...')
+    const loadingToast = toast.loading(t('Menandatangani transaksi deposit...', 'Signing deposit transaction...'))
 
     try {
       const connection = new Connection(RPC_URL, 'confirmed')
@@ -156,10 +158,10 @@ export default function PoolsPage() {
 
       const signed = await signAndSendTransaction(tx)
       const signature = signed?.signature
-      if (!signature) throw new Error('Signature tidak ditemukan')
+      if (!signature) throw new Error(t('Signature tidak ditemukan', 'Signature not found'))
 
       const confirmation = await connection.confirmTransaction(signature, 'confirmed')
-      if (confirmation.value.err) throw new Error('Transaksi gagal terkonfirmasi')
+      if (confirmation.value.err) throw new Error(t('Transaksi gagal terkonfirmasi', 'Transaction failed to confirm'))
 
       const stakeApi = getApiUrl('/api/pool/stake-mvp')
       if (stakeApi) {
@@ -178,11 +180,11 @@ export default function PoolsPage() {
       setLastSignature(signature)
       setStakeAmount('')
       toast.dismiss(loadingToast)
-      toast.success('Stake berhasil dan tercatat on-chain')
+      toast.success(t('Deposit berhasil dan tercatat on-chain', 'Deposit successful and recorded on-chain'))
       await fetchStats()
     } catch (error: any) {
       toast.dismiss(loadingToast)
-      toast.error(error?.message || 'Stake gagal diproses')
+      toast.error(error?.message || t('Deposit gagal diproses', 'Deposit processing failed'))
     } finally {
       setStaking(false)
     }
@@ -207,18 +209,20 @@ export default function PoolsPage() {
         <div className="px-8 py-8 max-w-6xl w-full mx-auto">
           <header className="mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] font-black text-amber-500 uppercase tracking-widest mb-4">
-              <Briefcase size={12} /> Liquidity Protocol
+              <Briefcase size={12} /> {t('Protokol Lending', 'Lending Protocol')}
             </div>
             <h1 className="text-5xl font-black tracking-tight">Yield Pools</h1>
-            <p className="text-slate-400 mt-3 max-w-3xl">Staking TVL untuk pendanaan produktif dengan verifikasi transaksi on-chain.</p>
+            <p className="text-slate-400 mt-3 max-w-3xl">
+              {t('Deposit USDC ke pool untuk mendanai pinjaman petani Indonesia. Verifikasi transaksi on-chain real-time.', 'Deposit USDC into pools to fund Indonesian farmer loans. Real-time on-chain transaction verification.')}
+            </p>
           </header>
 
           <section className="grid md:grid-cols-4 gap-4 mb-8">
             {[
-              { label: 'TVL', value: stats.loading ? 'Syncing...' : usd(stats.tvlUsdc), icon: <TrendingUp size={18} className="text-emerald-400" /> },
-              { label: 'Claims Paid', value: stats.loading ? 'Syncing...' : usd(stats.claimsPaidUsdc), icon: <Shield size={18} className="text-blue-400" /> },
-              { label: 'Active Policies', value: stats.loading ? 'Syncing...' : stats.activePolicies.toLocaleString('id-ID'), icon: <Shield size={18} className="text-amber-400" /> },
-              { label: 'Avg APY', value: stats.loading ? 'Syncing...' : stats.backendConnected ? `${stats.avgApy.toFixed(2)}%` : `Target ${TARGET_APY_FALLBACK.toFixed(2)}%`, icon: <Zap size={18} className="text-purple-400" /> },
+              { label: 'TVL', value: stats.loading ? t('Sinkronisasi...', 'Syncing...') : usd(stats.tvlUsdc), icon: <TrendingUp size={18} className="text-emerald-400" /> },
+              { label: t('Pinjaman Disalurkan', 'Loans Disbursed'), value: stats.loading ? t('Sinkronisasi...', 'Syncing...') : usd(stats.claimsPaidUsdc), icon: <Shield size={18} className="text-blue-400" /> },
+              { label: t('Pinjaman Aktif', 'Active Loans'), value: stats.loading ? t('Sinkronisasi...', 'Syncing...') : stats.activePolicies.toLocaleString('id-ID'), icon: <Shield size={18} className="text-amber-400" /> },
+              { label: t('Rata-rata APY', 'Avg APY'), value: stats.loading ? t('Sinkronisasi...', 'Syncing...') : stats.backendConnected ? `${stats.avgApy.toFixed(2)}%` : `Target ${TARGET_APY_FALLBACK.toFixed(2)}%`, icon: <Zap size={18} className="text-purple-400" /> },
             ].map((card, index) => (
               <motion.div key={card.label} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.06 }} className="glass-panel p-5 rounded-2xl">
                 <div className="flex items-center justify-between mb-3">
@@ -233,7 +237,7 @@ export default function PoolsPage() {
           <section className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 glass-panel p-6 rounded-3xl">
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-black text-white">Stake USDC to Pool</h2>
+                <h2 className="text-lg font-black text-white">{t('Deposit USDC ke Pool', 'Deposit USDC to Pool')}</h2>
                 <div className="text-[10px] font-black px-3 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 uppercase tracking-widest">
                   {health}
                 </div>
@@ -242,13 +246,15 @@ export default function PoolsPage() {
               {!connected ? (
                 <div className="p-8 border border-dashed border-amber-500/30 rounded-2xl bg-amber-500/5 text-center">
                   <AlertTriangle size={30} className="mx-auto text-amber-400 mb-3" />
-                  <p className="text-slate-300 mb-2">Hubungkan wallet untuk mulai stake.</p>
-                  <p className="font-mono text-[11px] text-slate-500">Gunakan tombol <span className="text-amber-400 font-bold">Hubungkan Wallet</span> di pojok kanan atas.</p>
+                  <p className="text-slate-300 mb-2">{t('Hubungkan wallet untuk mulai deposit.', 'Connect wallet to start depositing.')}</p>
+                  <p className="font-mono text-[11px] text-slate-500">
+                    {t('Gunakan tombol', 'Use the')} <span className="text-amber-400 font-bold">{t('Hubungkan Wallet', 'Connect Wallet')}</span> {t('di pojok kanan atas.', 'in the top right corner.')}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">
-                    Saldo USDC: {usdcBalance !== null ? usdcBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '...'}
+                    {t('Saldo USDC', 'USDC Balance')}: {usdcBalance !== null ? usdcBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '...'}
                   </div>
                   <div className="relative">
                     <input
@@ -275,14 +281,14 @@ export default function PoolsPage() {
                   >
                     {staking ? (
                       <span className="inline-flex items-center gap-2">
-                        Memproses <Loader2 size={16} className="animate-spin" />
+                        {t('Memproses', 'Processing')} <Loader2 size={16} className="animate-spin" />
                       </span>
                     ) : programReady === null ? (
-                      'Verifikasi Program...'
+                      t('Verifikasi Program...', 'Verifying Program...')
                     ) : programReady === false ? (
-                      'Program Belum Live'
+                      t('Program Belum Live', 'Program Not Live')
                     ) : (
-                      'Stake Sekarang'
+                      t('Deposit Sekarang', 'Deposit Now')
                     )}
                   </button>
                 </div>
@@ -302,7 +308,7 @@ export default function PoolsPage() {
 
               {lastSignature && (
                 <div className="mt-4 text-xs text-slate-300 break-all">
-                  Signature terakhir:
+                  {t('Signature terakhir', 'Last signature')}:
                   <a href={`https://explorer.solana.com/tx/${lastSignature}?cluster=devnet`} target="_blank" rel="noreferrer" className="block mt-1 text-emerald-300 underline underline-offset-2">
                     {lastSignature}
                   </a>

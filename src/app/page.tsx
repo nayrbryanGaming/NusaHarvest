@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { motion, useInView } from 'framer-motion'
 import { Leaf, Shield, Zap, CloudRain, ChevronRight, Activity, Globe, ArrowUpRight, Lock, Cpu } from 'lucide-react'
 import { useWallet } from '../providers/WalletProvider'
+import { useLanguage } from '../contexts/LanguageContext'
 import { PROGRAM_ID_STR, DEPLOY_TX_SIG, DEPLOY_SLOT, DEPLOY_DATE } from '../utils/constants'
 import { isProtocolProgramDeployed, fetchPoolStateMetrics } from '../utils/solana'
 
@@ -78,6 +79,7 @@ function AnimatedNumber({ value }: { value: string }) {
 
 export default function HomePage() {
   const { publicKey, connected } = useWallet()
+  const { t } = useLanguage()
   const [programReady, setProgramReady] = useState<boolean | null>(null)
   const [poolMetrics, setPoolMetrics] = useState({ totalTvl: '$0 USDC', activePolicies: 0 })
 
@@ -130,10 +132,10 @@ export default function HomePage() {
   }, [])
 
   const stats = [
-    { label: 'Total Value Locked', value: poolMetrics.totalTvl, icon: Globe, accent: 'emerald' },
-    { label: 'Active Loans', value: poolMetrics.activePolicies.toString(), icon: Activity, accent: 'teal' },
-    { label: 'Target APY', value: '8–14%', icon: Zap, accent: 'amber' },
-    { label: 'Farmer Region', value: 'Jawa Tengah — Pilot', icon: Leaf, accent: 'indigo' },
+    { label: t('Total Value Locked', 'Total Value Locked'), value: poolMetrics.totalTvl, icon: Globe, accent: 'emerald' },
+    { label: t('Pinjaman Aktif', 'Active Loans'), value: poolMetrics.activePolicies.toString(), icon: Activity, accent: 'teal' },
+    { label: t('Target APY', 'Target APY'), value: '8–14%', icon: Zap, accent: 'amber' },
+    { label: t('Wilayah Pilot', 'Pilot Region'), value: 'Jawa Tengah — Pilot', icon: Leaf, accent: 'indigo' },
   ]
 
   const accentMap: Record<string, string> = {
@@ -161,27 +163,30 @@ export default function HomePage() {
             <span className="animate-ping absolute inset-0 rounded-full bg-teal-400 opacity-70" />
             <span className="relative rounded-full h-2 w-2 bg-teal-500" />
           </span>
-          AgroFi Lending — Solana Devnet
+          {t('AgroFi Lending — Solana Devnet', 'AgroFi Lending — Solana Devnet')}
         </motion.div>
 
         <motion.h1 {...FV(0.08)} className="font-display text-5xl md:text-7xl lg:text-8xl text-white mb-5 tracking-tight leading-[1.06]">
-          Modal global masuk
+          {t('Modal global masuk', 'Global capital flows')}
           <br className="hidden md:block" />
-          <em className="text-emerald-400"> ke petani Indonesia.</em>
+          <em className="text-emerald-400"> {t('ke petani Indonesia.', 'to Indonesian farmers.')}</em>
           <br className="hidden md:block" />
-          On-chain. Transparan.
+          {t('On-chain. Transparan.', 'On-chain. Transparent.')}
         </motion.h1>
 
         <motion.p {...FV(0.16)} className="text-base md:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Platform <span className="text-slate-200 font-semibold">lending DeFi</span> pertama Indonesia — investor global setor USDC, smart contract menyalurkan modal ke 73 juta petani tanpa perantara bank.
+          {t(
+            'Platform lending DeFi pertama Indonesia — investor global setor USDC, smart contract menyalurkan modal ke 73 juta petani tanpa perantara bank.',
+            'Indonesia\'s first DeFi lending platform — global investors deposit USDC, smart contracts channel capital to 73 million farmers without bank intermediaries.'
+          )}
         </motion.p>
 
         <motion.div {...FV(0.24)} className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-8">
           <Link href="/pools" className="btn-primary w-full sm:w-auto px-8 py-4 text-white font-bold text-[15px] flex items-center justify-center gap-2">
-            Mulai Lending Sekarang <ChevronRight size={18} />
+            {t('Mulai Lending Sekarang', 'Start Lending Now')} <ChevronRight size={18} />
           </Link>
           <Link href="/dashboard" className="btn-ghost w-full sm:w-auto px-8 py-4 text-emerald-300 font-bold text-[15px] flex items-center justify-center gap-2">
-            Dashboard Petani <ArrowUpRight size={16} />
+            {t('Dashboard Petani', 'Farmer Dashboard')} <ArrowUpRight size={16} />
           </Link>
         </motion.div>
 

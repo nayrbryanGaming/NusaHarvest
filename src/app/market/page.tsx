@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import Sidebar from '../../components/Sidebar'
 import { useSim } from '../../contexts/SimulationContext'
+import { useLanguage } from '../../contexts/LanguageContext'
 import { getApiUrl } from '../../utils/api'
 import { fetchWithTimeout } from '../../utils/timeout'
 
@@ -36,6 +37,7 @@ function fmt(n: number) { return n.toLocaleString('id-ID') }
 
 export default function MarketPage() {
   const sim = useSim()
+  const { t } = useLanguage()
   const [data, setData]         = useState(INITIAL_DATA)
   const [loading, setLoading]   = useState(false)
   const [syncing, setSyncing]   = useState(true)
@@ -149,13 +151,16 @@ export default function MarketPage() {
             className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
             <div>
               <p className="font-mono text-[10.5px] tracking-[0.08em] uppercase text-slate-500 mb-3">
-                Real-time price feed &middot; CoinGecko + BPS Q1 2026
+                {t('Feed harga real-time · CoinGecko + BPS Q1 2026', 'Real-time price feed · CoinGecko + BPS Q1 2026')}
               </p>
               <h1 className="font-display text-5xl text-white tracking-tight leading-none mb-3">
-                Market <em className="text-emerald-400">matrix.</em>
+                {t('Data', 'Market')} <em className="text-emerald-400">{t('pasar.', 'matrix.')}</em>
               </h1>
               <p className="text-slate-400 text-[14px] max-w-xl leading-relaxed">
-                Harga SOL/USDC dari CoinGecko, komoditas dari referensi BPS Q1 2026 (devnet demo). Diperbarui otomatis setiap 60 detik.
+                {t(
+                  'Harga SOL/USDC dari CoinGecko, komoditas dari referensi BPS Q1 2026 (devnet demo). Diperbarui otomatis setiap 60 detik.',
+                  'SOL/USDC prices from CoinGecko, commodities from BPS Q1 2026 reference (devnet demo). Auto-refreshed every 60 seconds.'
+                )}
               </p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
@@ -170,7 +175,7 @@ export default function MarketPage() {
                 className="flex items-center gap-2 px-4 py-2 bg-white/[0.05] border border-white/[0.08] rounded-[4px] hover:bg-white/10 font-mono text-[10.5px] text-slate-300 transition-colors"
               >
                 <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
-                {loading ? 'Memuat...' : 'Refresh'}
+                {loading ? t('Memuat...', 'Loading...') : t('Refresh', 'Refresh')}
               </button>
             </div>
           </motion.div>
@@ -240,10 +245,10 @@ export default function MarketPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-0 divide-x divide-white/[0.04]">
               {[
-                { label: 'Suhu Udara',       value: `${sim.tempC}°C`,        icon: Sun,       color: 'text-amber-400',   alert: sim.tempC > 32 },
-                { label: 'Curah Hujan',      value: `${sim.rainfallMm} mm`,  icon: CloudRain, color: 'text-blue-400',    alert: sim.rainfallMm < 40 || sim.rainfallMm > 250 },
-                { label: 'Kelembaban',       value: `${sim.humidityPct}%`,   icon: Droplets,  color: 'text-teal-400',    alert: false },
-                { label: 'Kec. Angin',       value: `${sim.windKmh} km/h`,   icon: Wind,      color: 'text-slate-300',   alert: sim.windKmh > 25 },
+                { label: t('Suhu Udara', 'Temperature'),  value: `${sim.tempC}°C`,        icon: Sun,       color: 'text-amber-400',   alert: sim.tempC > 32 },
+                { label: t('Curah Hujan', 'Rainfall'),    value: `${sim.rainfallMm} mm`,  icon: CloudRain, color: 'text-blue-400',    alert: sim.rainfallMm < 40 || sim.rainfallMm > 250 },
+                { label: t('Kelembaban', 'Humidity'),     value: `${sim.humidityPct}%`,   icon: Droplets,  color: 'text-teal-400',    alert: false },
+                { label: t('Kec. Angin', 'Wind Speed'),   value: `${sim.windKmh} km/h`,   icon: Wind,      color: 'text-slate-300',   alert: sim.windKmh > 25 },
               ].map((idx) => (
                 <div key={idx.label} className="px-6 py-5">
                   <div className="flex items-center gap-2 mb-3">
@@ -252,7 +257,7 @@ export default function MarketPage() {
                   </div>
                   <p className={`font-display text-3xl mb-1 ${idx.alert ? 'text-orange-400' : idx.color}`}>{idx.value}</p>
                   <p className="font-mono text-[9px] text-slate-600">
-                    {idx.alert ? '⚠ Threshold warning' : 'Normal range'}
+                    {idx.alert ? t('⚠ Peringatan threshold', '⚠ Threshold warning') : t('Rentang normal', 'Normal range')}
                   </p>
                 </div>
               ))}
@@ -266,12 +271,13 @@ export default function MarketPage() {
               <AlertTriangle size={14} className="text-orange-400 shrink-0 mt-0.5"/>
               <div>
                 <p className="font-mono text-[11px] text-orange-300 font-semibold mb-1">
-                  Insurance Trigger Warning — Curah Hujan {sim.rainfallMm < 40 ? 'Di Bawah' : 'Di Atas'} Threshold
+                  {t(`Peringatan Disbursement — Curah Hujan ${sim.rainfallMm < 40 ? 'Di Bawah' : 'Di Atas'} Threshold`, `Disbursement Warning — Rainfall ${sim.rainfallMm < 40 ? 'Below' : 'Above'} Threshold`)}
                 </p>
                 <p className="font-mono text-[10.5px] text-slate-400">
-                  Rainfall {sim.rainfallMm}mm {sim.rainfallMm < 40 ? '< 40mm (drought threshold)' : '> 250mm (flood threshold)'}.
-                  Polis {sim.activeTriggers.join(', ')} dalam proses verifikasi trigger.
-                  Jika terkonfirmasi dalam window 30 hari, klaim diproses otomatis on-chain.
+                  {t(
+                    `Curah hujan ${sim.rainfallMm}mm ${sim.rainfallMm < 40 ? '< 40mm (threshold kekeringan)' : '> 250mm (threshold banjir)'}. Pinjaman ${sim.activeTriggers.join(', ')} dalam proses verifikasi oracle. Disbursement otomatis jika terkonfirmasi dalam 30 hari.`,
+                    `Rainfall ${sim.rainfallMm}mm ${sim.rainfallMm < 40 ? '< 40mm (drought threshold)' : '> 250mm (flood threshold)'}. Loan ${sim.activeTriggers.join(', ')} under oracle verification. Auto disbursement if confirmed within 30 days.`
+                  )}
                 </p>
               </div>
             </motion.div>
@@ -280,7 +286,7 @@ export default function MarketPage() {
           <div className="mt-6 p-4 rounded-[6px] border border-white/[0.05] bg-[#050b14] flex items-center gap-3">
             <Clock size={12} className="text-slate-600 shrink-0"/>
             <p className="font-mono text-[10px] text-slate-600">
-              Data tersinkronisasi otomatis setiap 60 detik. Harga komoditas menggunakan HPP pemerintah sebagai fallback saat API tidak tersedia.
+              {t('Data tersinkronisasi otomatis setiap 60 detik. Harga komoditas menggunakan HPP pemerintah sebagai fallback saat API tidak tersedia.', 'Data auto-synced every 60 seconds. Commodity prices use government HPP as fallback when API is unavailable.')}
               {lastUpdate && <> · Last update: {lastUpdate}</>}
             </p>
           </div>

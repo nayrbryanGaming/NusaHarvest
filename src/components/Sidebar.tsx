@@ -7,41 +7,43 @@ import {
   Settings, Map, Activity, ExternalLink, Leaf, Users
 } from 'lucide-react'
 import { useWallet } from '../providers/WalletProvider'
+import { useLanguage } from '../contexts/LanguageContext'
 import { PROGRAM_ID_STR, DEPLOY_TX_SIG, DEPLOY_SLOT } from '../utils/constants'
 
-const NAV = [
-  {
-    section: 'OVERVIEW',
-    items: [
-      { href: '/dashboard', label: 'Dashboard',   icon: LayoutDashboard },
-    ],
-  },
-  {
-    section: 'PLATFORM',
-    items: [
-      { href: '/insurance',    label: 'Insurance',   icon: Shield     },
-      { href: '/farms',        label: 'Farms',        icon: Map        },
-      { href: '/cooperatives', label: 'Koperasi',     icon: Users      },
-      { href: '/pools',        label: 'Yield Pools',  icon: Briefcase  },
-      { href: '/market',       label: 'Market',       icon: BarChart3  },
-    ],
-  },
-  {
-    section: 'SYSTEM',
-    items: [
-      { href: '/admin', label: 'Admin Center', icon: Settings },
-    ],
-  },
-]
-
 export default function Sidebar() {
-  const pathname  = usePathname()
+  const pathname = usePathname()
   const { publicKey, connected } = useWallet()
+  const { t } = useLanguage()
+
+  const NAV = [
+    {
+      section: t('IKHTISAR', 'OVERVIEW'),
+      items: [
+        { href: '/dashboard', label: t('Dashboard', 'Dashboard'), icon: LayoutDashboard },
+      ],
+    },
+    {
+      section: t('PLATFORM', 'PLATFORM'),
+      items: [
+        { href: '/insurance',    label: t('Asuransi', 'Insurance'),    icon: Shield    },
+        { href: '/farms',        label: t('Lahan', 'Farms'),           icon: Map       },
+        { href: '/cooperatives', label: t('Koperasi', 'Cooperatives'), icon: Users     },
+        { href: '/pools',        label: t('Yield Pools', 'Yield Pools'), icon: Briefcase },
+        { href: '/market',       label: t('Pasar', 'Market'),          icon: BarChart3 },
+      ],
+    },
+    {
+      section: t('SISTEM', 'SYSTEM'),
+      items: [
+        { href: '/admin', label: t('Pusat Admin', 'Admin Center'), icon: Settings },
+      ],
+    },
+  ]
 
   return (
-    <aside className="w-[220px] shrink-0 border-r border-white/[0.05] bg-[#0A0F0A] flex flex-col sticky top-[52px] overflow-hidden z-30" style={{ height: 'calc(100vh - 52px)' }}>
+    <aside className="w-[220px] shrink-0 border-r border-white/[0.05] bg-[#0A0F0A] flex flex-col sticky top-[52px] overflow-hidden z-30 h-[calc(100vh-52px)]">
 
-      {/* ── Brand ─────────────────────────────────── */}
+      {/* Brand */}
       <div className="px-5 pt-5 pb-4 border-b border-white/[0.05]">
         <Link href="/" className="flex items-center gap-2.5 mb-3 group">
           <div className="w-7 h-7 bg-emerald-500 rounded-[3px] grid place-items-center shrink-0">
@@ -50,11 +52,11 @@ export default function Sidebar() {
           <span className="font-display text-[19px] text-white tracking-tight leading-none">Nusa Harvest</span>
         </Link>
         <p className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-slate-600">
-          AgroFi Protocol · Devnet Sim
+          {t('AgroFi Lending · Devnet', 'AgroFi Lending · Devnet')}
         </p>
       </div>
 
-      {/* ── Navigation ────────────────────────────── */}
+      {/* Navigation */}
       <nav className="flex-1 px-2.5 py-3 space-y-5 overflow-y-auto">
         {NAV.map(({ section, items }) => (
           <div key={section}>
@@ -82,10 +84,10 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* ── Deployed Contract Proof ───────────────── */}
+      {/* Deployed Contract Proof */}
       <div className="mx-2.5 mb-2 p-3 rounded-[4px] border border-emerald-900/50 bg-emerald-950/25">
         <p className="font-mono text-[9px] tracking-[0.08em] uppercase text-emerald-600 mb-2">
-          ✓ Deployed · Solana Devnet
+          ✓ {t('Deployed · Solana Devnet', 'Deployed · Solana Devnet')}
         </p>
         <a
           href={`https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`}
@@ -104,7 +106,7 @@ export default function Sidebar() {
         </a>
       </div>
 
-      {/* ── Wallet Status (display only — connect button is in header) ── */}
+      {/* Wallet Status */}
       <div className="p-2.5 border-t border-white/[0.05]">
         {connected && publicKey ? (
           <div className="flex items-center gap-2.5 px-1.5 py-1.5">
@@ -116,14 +118,16 @@ export default function Sidebar() {
                 {publicKey.slice(0, 6)}…{publicKey.slice(-4)}
               </p>
               <p className="font-mono text-[9px] text-emerald-400 flex items-center gap-1 mt-0.5">
-                <Activity size={8} /> Connected
+                <Activity size={8} /> {t('Terhubung', 'Connected')}
               </p>
             </div>
           </div>
         ) : (
           <div className="flex items-center gap-2 px-1.5 py-1.5">
             <div className="w-2 h-2 rounded-full bg-slate-600 shrink-0" />
-            <p className="font-mono text-[10px] text-slate-600 uppercase tracking-wider">Wallet tidak terhubung</p>
+            <p className="font-mono text-[10px] text-slate-600 uppercase tracking-wider">
+              {t('Wallet tidak terhubung', 'Wallet not connected')}
+            </p>
           </div>
         )}
       </div>
