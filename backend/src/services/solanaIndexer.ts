@@ -169,7 +169,7 @@ export async function syncAdminMetrics() {
 
     const claims = await prisma.claim.count({
       where: { status: 'PAID' }
-    }).catch(err => {
+    }).catch((err: any) => {
       logger.warn('Failed to count claims, using 0:', err)
       return 0
     })

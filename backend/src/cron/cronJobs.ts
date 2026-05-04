@@ -33,7 +33,7 @@ export function startCronJobs() {
       // Load all unique farm locations from DB
       const farms = await prisma.farm.findMany({
         select: { latitude: true, longitude: true, id: true }
-      }).catch(err => {
+      }).catch((err: any) => {
         logger.error('  ❌ Failed to load farms from DB:', err)
         return []
       })

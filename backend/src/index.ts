@@ -59,12 +59,18 @@ const server = app.listen(PORT, () => {
   logger.info(`🌾 Nusa Harvest Backend running on port ${PORT}`)
   logger.info(`🔗 Solana Network: ${process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com'}`)
   
-  // Start cron jobs with error handling
+  // Start cron jobs with error handling (async to avoid blocking startup)
   try {
-    startCronJobs()
-    logger.info('✅ Cron jobs started')
+    setTimeout(() => {
+      try {
+        startCronJobs()
+        logger.info('✅ Cron jobs started')
+      } catch (err) {
+        logger.error('⚠️ Cron jobs failed to start:', err)
+      }
+    }, 1000)  // Delay by 1 second to ensure server is fully initialized
   } catch (err) {
-    logger.error('⚠️ Cron jobs failed to start (non-fatal):', err)
+    logger.warn('⚠️ Cron jobs startup error (non-fatal):', err)
   }
 })
 
