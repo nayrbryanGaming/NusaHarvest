@@ -63,25 +63,22 @@ export async function indexAllPools(programId: PublicKey = PROGRAM_ID) {
     for (const account of accounts) {
       try {
         const poolData = {
-          onchainAddress: account.pubkey.toString(),
-          balance: account.account.lamports,
-          owner: account.account.owner.toString(),
-          dataSize: account.account.data.length,
-          indexed: new Date()
+          name: `Pool ${account.pubkey.toString().slice(0, 8)}`,
+          commodity: 'RICE' as any,
+          region: 'devnet',
+          onChainPoolAddress: account.pubkey.toString()
         }
 
         // Store to database
-        await prisma.pool.upsert({
-          where: { onchainAddress: poolData.onchainAddress },
+        await prisma.yieldPool.upsert({
+          where: { onChainPoolAddress: poolData.onChainPoolAddress },
           create: poolData,
           update: {
-            balance: poolData.balance,
-            dataSize: poolData.dataSize,
-            indexed: poolData.indexed
+            onChainPoolAddress: poolData.onChainPoolAddress
           }
         })
 
-        logger.info(`📦 Indexed pool: ${poolData.onchainAddress.slice(0, 8)}...`)
+        logger.info(`📦 Indexed pool: ${poolData.onChainPoolAddress.slice(0, 8)}...`)
       } catch (err) {
         logger.error(`Failed to index pool account:`, err)
       }
@@ -119,22 +116,8 @@ export async function watchRecentTransactions(programId: PublicKey = PROGRAM_ID)
           
           // Store important transactions
           if (!tx.meta.err) {
-            await prisma.transaction.upsert({
-              where: { signature: sig.signature },
-              create: {
-                signature: sig.signature,
-                programId: programId.toString(),
-                status: 'SUCCESS',
-                fee: tx.meta.fee,
-                timestamp: new Date(sig.blockTime ? sig.blockTime * 1000 : Date.now()),
-                logs: tx.meta.logMessages?.join('\n') || ''
-              },
-              update: {
-                status: 'SUCCESS',
-                fee: tx.meta.fee,
-                timestamp: new Date(sig.blockTime ? sig.blockTime * 1000 : Date.now())
-              }
-            })
+            // Log successful transaction (simplified - no separate transaction table)
+            logger.info(`✅ Successful tx: ${sig.signature}`)
           }
         }
       } catch (err) {
@@ -151,15 +134,15 @@ export async function watchRecentTransactions(programId: PublicKey = PROGRAM_ID)
 // ── Get Real-Time Pool Metrics ──────────────────────────────────────────────
 export async function getPoolMetrics() {
   try {
-    const totalPools = await prisma.pool.count()
-    const totalBalance = await prisma.pool.aggregate({
-      _sum: { balance: true }
+    const totalPools = await prisma.yieldPool.count()
+    const totalBalance = await prisma.yieldPool.aggregate({
+      _sum: { totalDepositedUsdc: true }
     })
 
     const metrics = {
       totalPools,
-      totalBalance: totalBalance._sum?.balance || 0,
-      totalBalanceSOL: (totalBalance._sum?.balance || 0) / 1_000_000_000,
+      totalBalance: totalBalance._sum?.totalDepositedUsdc || 0,
+      totalBalanceSOL: (totalBalance._sum?.totalDepositedUsdc || 0) / 1_000_000,
       lastSync: new Date(),
       rpcUrl: RPC_URL,
       programId: PROGRAM_ID.toString()
@@ -185,7 +168,7 @@ export async function syncAdminMetrics() {
     })
 
     const claims = await prisma.claim.count({
-      where: { status: 'APPROVED' }
+      where: { status: 'PAID' }
     })
 
     const adminMetrics = {

@@ -31,7 +31,7 @@ export function calculatePoolApy(
 export async function updateAllPoolStats(): Promise<void> {
   logger.info('📊 Refreshing dynamic pool metrics...')
   
-  const pools = await prisma.pool.findMany()
+  const pools = await prisma.yieldPool.findMany()
   
   for (const pool of pools) {
     try {
@@ -44,20 +44,22 @@ export async function updateAllPoolStats(): Promise<void> {
       })
       
       const volatilityIndex = Math.min(1, recentClaimsCount / 10)
-      const reserveRatio = pool.totalTvlUsdc && pool.totalTvlUsdc > 0 
-        ? pool.availableReserveUsdc / pool.totalTvlUsdc 
+      const reserveRatio = pool.totalDepositedUsdc && pool.totalDepositedUsdc > 0 
+        ? pool.availableReserveUsdc / pool.totalDepositedUsdc 
         : 1.0
         
-      const newApy = calculatePoolApy(pool.apy, volatilityIndex, reserveRatio)
+      const baseApy = pool.currentApyBps / 100
+      const newApy = calculatePoolApy(baseApy, volatilityIndex, reserveRatio)
+      const newApyBps = Math.round(newApy * 100)
       
-      await prisma.pool.update({
+      await prisma.yieldPool.update({
         where: { id: pool.id },
-        data: { apy: newApy }
+        data: { currentApyBps: newApyBps }
       })
       
-      logger.info(`✅ Pool ${pool.symbol} APY updated to ${newApy}%`)
+      logger.info(`✅ Pool ${pool.name} APY updated to ${newApy}%`)
     } catch (e) {
-      logger.error(`❌ Failed to update pool ${pool.symbol}:`, e)
+      logger.error(`❌ Failed to update pool ${pool.name}:`, e)
     }
   }
 }
