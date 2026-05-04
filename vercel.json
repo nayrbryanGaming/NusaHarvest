@@ -8,7 +8,8 @@
     "NEXT_PUBLIC_SOLANA_NETWORK": "devnet",
     "NEXT_PUBLIC_SOLANA_RPC_URL": "https://api.devnet.solana.com",
     "NEXT_PUBLIC_PROGRAM_ID": "3E4wxrT28UqM2ua9n2XnzMMdGoyuR7qZ9VtXQ29XGAgt",
-    "NEXT_PUBLIC_USDC_MINT": "4zMMC9srtVu2nuQJHGGMBVsCLqzr6nYHGL9H5LHvpx5h"
+    "NEXT_PUBLIC_USDC_MINT": "4zMMC9srtVu2nuQJHGGMBVsCLqzr6nYHGL9H5LHvpx5h",
+    "NEXT_PUBLIC_API_BASE_URL": "https://api.nusaharvest.vercel.app"
   },
   "regions": ["sin1"],
   "headers": [
