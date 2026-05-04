@@ -45,12 +45,33 @@ app.get('/api/pool/metrics', async (_req, res) => {
   try {
     if (indexerReady && syncAdminMetrics) {
       const metrics = await syncAdminMetrics()
-      return res.json({
-        success: true,
-        data: metrics,
-        source: 'indexer',
-        message: 'On-chain metrics synced'
-      })
+      if (metrics) {
+        return res.json({
+          success: true,
+          data: {
+            finance: {
+              totalTvlUsdc: metrics.tvlUsd || 0,
+              avgApy: metrics.avgApy || 0
+            },
+            program: {
+              balanceIdr: metrics.tvlIdr || 0
+            },
+            network: {
+              usdcToIdr: 15000
+            },
+            insurance: {
+              activePolicies: metrics.activePolicies || 0,
+              totalClaims: metrics.totalClaims || 0
+            },
+            recent: {
+              claims: [],
+              investments: []
+            }
+          },
+          source: 'indexer',
+          message: 'On-chain metrics synced'
+        })
+      }
     }
   } catch (err) {
     console.error('Indexer error:', err)
@@ -60,13 +81,24 @@ app.get('/api/pool/metrics', async (_req, res) => {
   res.json({
     success: true,
     data: {
-      tvlUsd: 0,
-      tvlIdr: 0,
-      activePolicies: 0,
-      totalClaims: 0,
-      avgApy: 0,
-      backendConnected: false,
-      lastSync: new Date()
+      finance: {
+        totalTvlUsdc: 0,
+        avgApy: 0
+      },
+      program: {
+        balanceIdr: 0
+      },
+      network: {
+        usdcToIdr: 15000
+      },
+      insurance: {
+        activePolicies: 0,
+        totalClaims: 0
+      },
+      recent: {
+        claims: [],
+        investments: []
+      }
     },
     source: 'fallback',
     message: 'Database not connected - returning fallback metrics'
