@@ -19,49 +19,49 @@ const FV = (delay = 0): any => ({
 const FEATURES = [
   {
     step: '01',
-    icon: CloudRain,
+    icon: Globe,
     iconColor: 'text-blue-400',
     iconBg: 'bg-blue-500/15 border-blue-500/25',
     glow: 'from-blue-600/15 via-blue-800/10 to-transparent',
     border: 'hover:border-blue-500/30',
-    title: 'Oracle Cuaca Real-time',
-    desc: 'Devnet demo memakai Open-Meteo sebagai feed cuaca dengan status sumber data yang transparan.',
+    title: 'Global Investors Deposit',
+    desc: 'Investor global menyetor USDC ke yield pool on-chain di Solana. Transparan, non-custodial, real-time.',
   },
   {
     step: '02',
-    icon: Shield,
+    icon: Cpu,
     iconColor: 'text-emerald-400',
     iconBg: 'bg-emerald-500/15 border-emerald-500/25',
     glow: 'from-emerald-600/15 via-emerald-800/10 to-transparent',
     border: 'hover:border-emerald-500/30',
-    title: 'Smart Contract Engine',
-    desc: 'Otomatis memeriksa threshold cuaca. Tidak perlu klaim manual untuk alur parametrik.',
+    title: 'Yield Pool Lending',
+    desc: 'Smart contract mengalokasikan likuiditas pool ke petani terverifikasi sebagai pinjaman modal kerja.',
   },
   {
     step: '03',
-    icon: Zap,
+    icon: Leaf,
     iconColor: 'text-amber-400',
     iconBg: 'bg-amber-500/15 border-amber-500/25',
     glow: 'from-amber-600/15 via-amber-800/10 to-transparent',
     border: 'hover:border-amber-500/30',
-    title: 'Settlement Cepat',
-    desc: 'Target settlement cepat dipantau dari data transaksi on-chain dan backend.',
+    title: 'Pencairan ke Petani',
+    desc: 'Petani Indonesia menerima modal dalam menit langsung ke wallet. Bunga kompetitif, tanpa bank.',
   },
 ]
 
 const CAPABILITIES = [
-  { icon: Lock, title: 'Smart Contract Audit', desc: 'Arsitektur Solana Anchor v0.30 yang secure by design.' },
-  { icon: Cpu, title: 'Risk Engine', desc: 'Pemodelan risiko berbasis histori cuaca dan indikator agrikultur.' },
-  { icon: Leaf, title: 'Komoditas Premium', desc: 'Coverage untuk Padi, Kopi Robusta, dan Kelapa Sawit.' },
+  { icon: Globe, title: 'Akses Modal Global', desc: 'Investor dari seluruh dunia dapat menyetor USDC ke pool dan mendapatkan yield dari sektor agrikultur Indonesia.' },
+  { icon: Lock, title: 'Agunan On-Chain', desc: 'Data lahan petani terdaftar on-chain sebagai agunan terverifikasi, menggantikan jaminan fisik konvensional.' },
+  { icon: Zap, title: 'Pencairan Instan', desc: 'Disbursement ke petani dalam hitungan menit melalui Solana. Tidak perlu proses bank berminggu-minggu.' },
 ]
 
 const FUSION_MODULES = [
-  { title: 'Farmer Dashboard', href: '/dashboard', desc: 'Monitoring cuaca, risiko, dan status proteksi lahan.', icon: CloudRain },
-  { title: 'Yield Pools', href: '/pools', desc: 'Stake, funding pool, dan sinkronisasi metrik on-chain.', icon: Zap },
-  { title: 'Market Data', href: '/market', desc: 'Feed harga SOL, USDC, dan komoditas dari API live.', icon: Globe },
-  { title: 'Registry', href: '/register', desc: 'Onboarding identitas petani dan data lahan terverifikasi.', icon: Shield },
-  { title: 'SOLQ QRIS', href: '/solq', desc: 'Parser EMVCo QRIS + payment intent non-custodial.', icon: Activity },
-  { title: 'Admin Center', href: '/admin', desc: 'Kontrol operasional protokol dan audit deployment.', icon: Lock },
+  { title: 'Farmer Dashboard', href: '/dashboard', desc: 'Monitoring pinjaman aktif, cicilan, dan status agunan lahan petani.', icon: Leaf },
+  { title: 'Yield Pools', href: '/pools', desc: 'Deposit USDC, pantau APY, dan kelola portofolio lending global.', icon: Zap },
+  { title: 'Market Data', href: '/market', desc: 'Feed harga SOL, USDC, dan komoditas agrikultur dari API live.', icon: Globe },
+  { title: 'Registry', href: '/register', desc: 'Onboarding petani, verifikasi lahan, dan aktivasi agunan on-chain.', icon: Shield },
+  { title: 'SOLQ QRIS', href: '/solq', desc: 'Parser EMVCo QRIS + payment intent non-custodial untuk disbursement.', icon: Activity },
+  { title: 'Admin Center', href: '/admin', desc: 'Kontrol operasional pool, monitoring pinjaman, dan audit deployment.', icon: Lock },
 ]
 
 /* Animated Counter */
@@ -131,9 +131,9 @@ export default function HomePage() {
 
   const stats = [
     { label: 'Total Value Locked', value: poolMetrics.totalTvl, icon: Globe, accent: 'emerald' },
-    { label: 'Active Policies', value: poolMetrics.activePolicies.toString(), icon: Activity, accent: 'teal' },
-    { label: 'Claim Settlement', value: '< 6 Jam', icon: Zap, accent: 'amber' },
-    { label: 'Coverage Region', value: 'Jawa Tengah — Pilot', icon: CloudRain, accent: 'indigo' },
+    { label: 'Active Loans', value: poolMetrics.activePolicies.toString(), icon: Activity, accent: 'teal' },
+    { label: 'Target APY', value: '8–14%', icon: Zap, accent: 'amber' },
+    { label: 'Farmer Region', value: 'Jawa Tengah — Pilot', icon: Leaf, accent: 'indigo' },
   ]
 
   const accentMap: Record<string, string> = {
@@ -161,27 +161,27 @@ export default function HomePage() {
             <span className="animate-ping absolute inset-0 rounded-full bg-teal-400 opacity-70" />
             <span className="relative rounded-full h-2 w-2 bg-teal-500" />
           </span>
-          Platform AgroFi Indonesia - Solana Devnet
+          AgroFi Lending — Solana Devnet
         </motion.div>
 
         <motion.h1 {...FV(0.08)} className="font-display text-5xl md:text-7xl lg:text-8xl text-white mb-5 tracking-tight leading-[1.06]">
-          Asuransi panen
+          Modal global masuk
           <br className="hidden md:block" />
-          <em className="text-emerald-400"> target cair di bawah 6 jam.</em>
+          <em className="text-emerald-400"> ke petani Indonesia.</em>
           <br className="hidden md:block" />
-          Fokus devnet, siap scale.
+          On-chain. Transparan.
         </motion.h1>
 
         <motion.p {...FV(0.16)} className="text-base md:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Infrastruktur <span className="text-slate-200 font-semibold">AgroFi</span> dengan alur pembayaran dan proteksi yang terhubung ke data on-chain dan data cuaca real-time.
+          Platform <span className="text-slate-200 font-semibold">lending DeFi</span> pertama Indonesia — investor global setor USDC, smart contract menyalurkan modal ke 73 juta petani tanpa perantara bank.
         </motion.p>
 
         <motion.div {...FV(0.24)} className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-8">
-          <Link href="/dashboard" className="btn-primary w-full sm:w-auto px-8 py-4 text-white font-bold text-[15px] flex items-center justify-center gap-2">
-            Masuk Dashboard Petani <ChevronRight size={18} />
+          <Link href="/pools" className="btn-primary w-full sm:w-auto px-8 py-4 text-white font-bold text-[15px] flex items-center justify-center gap-2">
+            Mulai Lending Sekarang <ChevronRight size={18} />
           </Link>
-          <Link href="/pools" className="btn-ghost w-full sm:w-auto px-8 py-4 text-emerald-300 font-bold text-[15px] flex items-center justify-center gap-2">
-            Buka Peluang Investasi <ArrowUpRight size={16} />
+          <Link href="/dashboard" className="btn-ghost w-full sm:w-auto px-8 py-4 text-emerald-300 font-bold text-[15px] flex items-center justify-center gap-2">
+            Dashboard Petani <ArrowUpRight size={16} />
           </Link>
         </motion.div>
 
@@ -216,8 +216,8 @@ export default function HomePage() {
       <section className="relative z-10 max-w-7xl mx-auto px-6 pb-20">
         <motion.div {...FV()} className="text-center max-w-3xl mx-auto mb-10">
           <p className="data-badge data-badge-inactive mx-auto w-fit mb-4">Design Fusion</p>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">Gabungan 4 Versi Menjadi Satu Website</h2>
-          <p className="text-slate-400">Semua desain modul utama digabung ke dalam satu pengalaman visual yang konsisten tanpa merusak logic inti aplikasi.</p>
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">Ekosistem Lending Agrikultur</h2>
+          <p className="text-slate-400">Semua modul — dari deposit investor hingga disbursement petani — terintegrasi dalam satu platform on-chain yang transparan.</p>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -245,8 +245,8 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <motion.div {...FV()} className="text-center max-w-3xl mx-auto mb-16">
             <p className="data-badge data-badge-inactive mx-auto w-fit mb-4">Cara Kerja</p>
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-5 tracking-tight">Evolusi Asuransi Pertanian</h2>
-            <p className="text-slate-400 leading-relaxed">Dari ladang hingga dompet tanpa campur tangan manual, dengan status yang dapat diverifikasi.</p>
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-5 tracking-tight">Cara Kerja Lending On-Chain</h2>
+            <p className="text-slate-400 leading-relaxed">Dari dompet investor global ke tangan petani Indonesia — tanpa bank, tanpa perantara, dieksekusi smart contract.</p>
           </motion.div>
 
           <div className="grid lg:grid-cols-3 gap-6">
@@ -278,8 +278,8 @@ export default function HomePage() {
           <motion.div {...FV()} className="space-y-8">
             <div>
               <p className="data-badge data-badge-inactive w-fit mb-4">Teknologi</p>
-              <h2 className="text-4xl font-black text-white leading-tight mb-4">DeFi yang Berdampak ke Dunia Nyata</h2>
-              <p className="text-slate-400 leading-relaxed">Likuiditas digital dan perlindungan agrikultur dipadukan dalam arsitektur yang transparan dan dapat diaudit.</p>
+              <h2 className="text-4xl font-black text-white leading-tight mb-4">Modal Global, Dampak Lokal</h2>
+              <p className="text-slate-400 leading-relaxed">Yield pool on-chain menjembatani likuiditas global ke sektor agrikultur Indonesia — transparan, dapat diaudit, real yield.</p>
             </div>
             <ul className="space-y-4">
               {CAPABILITIES.map((capability, index) => {
@@ -304,7 +304,7 @@ export default function HomePage() {
             <div className="glass-panel rounded-3xl border border-slate-700/40 p-7 space-y-5">
               <div className="flex justify-between items-center pb-5 border-b border-slate-800/60">
                 <div>
-                  <p className="text-slate-400 text-xs font-medium mb-1">Status Smart Contract</p>
+                  <p className="text-slate-400 text-xs font-medium mb-1">Status Pool Contract</p>
                   <div className="flex items-center gap-2">
                     <div className={`status-dot-live ${programReady === null ? 'bg-slate-500' : programReady ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                     <span className="text-white font-bold text-sm">
@@ -324,7 +324,7 @@ export default function HomePage() {
                 { label: 'Program ID', value: `${PROGRAM_ID_STR.slice(0, 10)}...${PROGRAM_ID_STR.slice(-6)}`, href: `https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`, color: 'text-emerald-300' },
                 { label: 'Deploy Tx', value: `${DEPLOY_TX_SIG.slice(0, 10)}...${DEPLOY_TX_SIG.slice(-6)}`, href: `https://explorer.solana.com/tx/${DEPLOY_TX_SIG}?cluster=devnet`, color: 'text-purple-300' },
                 { label: 'Deploy Slot', value: `#${DEPLOY_SLOT.toLocaleString()} - ${DEPLOY_DATE}`, color: 'text-slate-400' },
-                { label: 'Settlement Asset', value: 'USDC (SPL Token)', color: 'text-teal-300' },
+                { label: 'Lending Asset', value: 'USDC (SPL Token)', color: 'text-teal-300' },
                 { label: 'Framework', value: 'Anchor v0.30 / Rust', color: 'text-slate-300' },
               ].map((row) => (
                 <div key={row.label} className="mono-block flex justify-between items-center">
