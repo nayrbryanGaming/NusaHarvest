@@ -149,7 +149,7 @@ export default function MarketPage() {
             className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
             <div>
               <p className="font-mono text-[10.5px] tracking-[0.08em] uppercase text-slate-500 mb-3">
-                Real-time price feed · CoinGecko + BPS Q1 2026
+                Real-time price feed &middot; CoinGecko + BPS Q1 2026
               </p>
               <h1 className="font-display text-5xl text-white tracking-tight leading-none mb-3">
                 Market <em className="text-emerald-400">matrix.</em>
