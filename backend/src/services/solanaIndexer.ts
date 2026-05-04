@@ -169,14 +169,17 @@ export async function syncAdminMetrics() {
 
     const claims = await prisma.claim.count({
       where: { status: 'PAID' }
+    }).catch(err => {
+      logger.warn('Failed to count claims, using 0:', err)
+      return 0
     })
 
     const adminMetrics = {
-      tvlUsd: metrics.totalBalanceSOL * 200, // Rough USDC equivalent (adjust exchange rate)
-      tvlIdr: metrics.totalBalanceSOL * 200 * 15000, // Rough IDR conversion
-      activePolicies: policies,
-      totalClaims: claims,
-      avgApy: 9.4, // From simulation
+      tvlUsd: metrics?.totalBalanceSOL ? metrics.totalBalanceSOL * 200 : 0,
+      tvlIdr: metrics?.totalBalanceSOL ? metrics.totalBalanceSOL * 200 * 15000 : 0,
+      activePolicies: policies || 0,
+      totalClaims: claims || 0,
+      avgApy: 9.4,
       backendConnected: true,
       lastSync: new Date()
     }
@@ -184,7 +187,16 @@ export async function syncAdminMetrics() {
     logger.info(`✅ Admin metrics synced:`, adminMetrics)
     return adminMetrics
   } catch (err) {
-    logger.error(`❌ Failed to sync admin metrics:`, err)
-    return null
+    logger.error(`⚠️ Failed to sync admin metrics (returning fallback):`, err)
+    // Return fallback metrics to prevent admin panel from showing error
+    return {
+      tvlUsd: 0,
+      tvlIdr: 0,
+      activePolicies: 0,
+      totalClaims: 0,
+      avgApy: 0,
+      backendConnected: false,
+      lastSync: new Date()
+    }
   }
 }
