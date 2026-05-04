@@ -55,10 +55,26 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 })
 
 // ── Start Server ─────────────────────────────────────────
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`🌾 Nusa Harvest Backend running on port ${PORT}`)
   logger.info(`🔗 Solana Network: ${process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com'}`)
-  startCronJobs()
+  
+  // Start cron jobs with error handling
+  try {
+    startCronJobs()
+    logger.info('✅ Cron jobs started')
+  } catch (err) {
+    logger.error('⚠️ Cron jobs failed to start (non-fatal):', err)
+  }
+})
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully...')
+  server.close(() => {
+    logger.info('Server closed')
+    process.exit(0)
+  })
 })
 
 export default app

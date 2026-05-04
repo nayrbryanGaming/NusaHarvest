@@ -15,20 +15,28 @@ const PILOT_COORDINATES = [
 export function startCronJobs() {
   // ── Every 30 minutes: Index all pools from smart contract ──────────────────
   cron.schedule('*/30 * * * *', async () => {
-    logger.info('⛓️ CRON: Indexing pools from smart contract...')
-    await indexAllPools()
-    await syncAdminMetrics()
-    logger.info('⛓️ CRON: Pool indexing complete.')
+    try {
+      logger.info('⛓️ CRON: Indexing pools from smart contract...')
+      await indexAllPools()
+      await syncAdminMetrics()
+      logger.info('⛓️ CRON: Pool indexing complete.')
+    } catch (err) {
+      logger.error('⚠️ CRON: Pool indexing failed:', err)
+    }
   })
 
   // ── Daily 07:00 WIB: Refresh weather for all active farm locations ────────
   cron.schedule('0 0 * * *', async () => {  // 00:00 UTC = 07:00 WIB
-    logger.info('🌦 CRON: Starting daily weather data refresh...')
+    try {
+      logger.info('🌦 CRON: Starting daily weather data refresh...')
 
-    // Load all unique farm locations from DB
-    const farms = await prisma.farm.findMany({
-      select: { latitude: true, longitude: true, id: true }
-    })
+      // Load all unique farm locations from DB
+      const farms = await prisma.farm.findMany({
+        select: { latitude: true, longitude: true, id: true }
+      }).catch(err => {
+        logger.error('  ❌ Failed to load farms from DB:', err)
+        return []
+      })
 
     const locations = farms.length > 0 ? farms : PILOT_COORDINATES.map((c, i) => ({
       latitude: c.lat, longitude: c.lon, id: `pilot-${i}`
@@ -47,13 +55,20 @@ export function startCronJobs() {
     }
 
     logger.info('🌦 CRON: Weather refresh complete.')
+    } catch (err) {
+      logger.error('⚠️ CRON: Weather refresh failed:', err)
+    }
   })
 
   // ── Daily 08:00 WIB: Evaluate all active insurance policies ──────────────
   cron.schedule('0 1 * * *', async () => {  // 01:00 UTC = 08:00 WIB
-    logger.info('📋 CRON: Evaluating active insurance policies...')
-    await evaluateAllActivePolicies()
-    logger.info('📋 CRON: Policy evaluation complete.')
+    try {
+      logger.info('📋 CRON: Evaluating active insurance policies...')
+      await evaluateAllActivePolicies()
+      logger.info('📋 CRON: Policy evaluation complete.')
+    } catch (err) {
+      logger.error('⚠️ CRON: Policy evaluation failed:', err)
+    }
   })
 
   logger.info('⏰ Cron jobs scheduled: on-chain indexing (every 30 min), weather refresh (07:00 WIB), policy evaluation (08:00 WIB)')
