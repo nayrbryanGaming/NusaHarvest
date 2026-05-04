@@ -62,6 +62,20 @@ export default function AdminPage() {
   const router = useRouter()
   const { publicKey, connected, signMessage } = useWallet()
   const isAdmin = connected && publicKey ? ADMIN_WALLETS.includes(publicKey) : false
+  
+  // DEBUG: Log wallet info
+  useEffect(() => {
+    if (connected && publicKey) {
+      console.log('🔍 ADMIN DEBUG:', {
+        publicKey,
+        publicKeyLength: publicKey.length,
+        adminWallets: ADMIN_WALLETS,
+        isAdmin,
+        includes: ADMIN_WALLETS.includes(publicKey),
+      })
+    }
+  }, [publicKey, connected, isAdmin])
+  
   const deniedRedirectRef = useRef(false)
   const [metrics, setMetrics] = useState<MetricsState>({
     tvlUsdc: 0,
