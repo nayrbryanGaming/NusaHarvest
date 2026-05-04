@@ -1,22 +1,17 @@
 {
   "version": 2,
-  "name": "nusa-harvest-backend",
   "env": {
-    "SOLANA_RPC_URL": "@solana_rpc_url",
+    "SOLANA_RPC_URL": "https://api.devnet.solana.com",
     "SOLANA_NETWORK": "devnet",
-    "PROGRAM_ID": "@program_id",
-    "DATABASE_URL": "@database_url",
-    "JWT_SECRET": "@jwt_secret",
-    "OPENWEATHER_API_KEY": "@openweather_api_key",
+    "PROGRAM_ID": "3E4wxrT28UqM2ua9n2XnzMMdGoyuR7qZ9VtXQ29XGAgt",
     "FRONTEND_URL": "https://nusaharvest.vercel.app",
     "NODE_ENV": "production",
     "PORT": "4000"
   },
   "build": {
     "env": {
-      "SOLANA_RPC_URL": "@solana_rpc_url",
-      "PROGRAM_ID": "@program_id",
-      "DATABASE_URL": "@database_url",
+      "SOLANA_RPC_URL": "https://api.devnet.solana.com",
+      "PROGRAM_ID": "3E4wxrT28UqM2ua9n2XnzMMdGoyuR7qZ9VtXQ29XGAgt",
       "NODE_ENV": "production"
     }
   },
