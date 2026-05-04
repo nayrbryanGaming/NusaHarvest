@@ -468,9 +468,9 @@ export default function DashboardPage() {
     <div className="flex min-h-screen bg-[#0A0F0A] pt-[52px]">
       <Sidebar />
 
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col">
         {/* Topbar */}
-        <div className="h-12 flex items-center justify-between px-8 border-b border-white/[0.05] sticky top-[52px] z-10 bg-[#0A0F0A]/90 backdrop-blur shrink-0">
+        <div className="h-12 flex items-center justify-between px-8 border-b border-white/[0.05] sticky top-[52px] z-10 bg-[#0A0F0A]/90 backdrop-blur">
           <div className="font-mono text-[11px] text-slate-500 flex items-center gap-2">
             <span>Nusa Harvest</span>
             <span className="text-slate-700">/</span>
@@ -481,7 +481,7 @@ export default function DashboardPage() {
           </span>
         </div>
 
-        <div className="flex-1 relative overflow-auto">
+        <div className="flex-1 overflow-auto relative">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-600/8 blur-[150px] -z-10 rounded-full pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-[500px] h-[400px] bg-teal-800/8 blur-[120px] -z-10 rounded-full pointer-events-none" />
 
