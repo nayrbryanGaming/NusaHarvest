@@ -17,11 +17,6 @@
   },
   "buildCommand": "npm run build && npx prisma generate",
   "outputDirectory": "dist",
-  "functions": {
-    "src/index.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "routes": [
     {
       "src": "/(.*)",
