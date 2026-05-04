@@ -19,6 +19,7 @@ pub mod nusa_harvest_pool {
     pub fn initialize_pool(ctx: Context<InitializePool>) -> Result<()> {
         let pool = &mut ctx.accounts.pool_state;
         pool.admin = ctx.accounts.admin.key();
+        pool.secondary_admin = None;
         pool.treasury = TREASURY.parse().unwrap();
         pool.total_tvl_usdc = 0;
         pool.total_reserve_usdc = 0;
@@ -32,6 +33,29 @@ pub mod nusa_harvest_pool {
             treasury: pool.treasury,
             timestamp: pool.initialized_at,
         });
+        Ok(())
+    }
+
+    /// Update secondary admin — only primary admin can call.
+    /// Adds a secondary admin wallet that also has admin privileges.
+    pub fn update_secondary_admin(ctx: Context<UpdateSecondaryAdmin>, new_admin: Pubkey) -> Result<()> {
+        let pool = &mut ctx.accounts.pool_state;
+        
+        // Only primary admin can update secondary admin
+        require!(
+            pool.admin == ctx.accounts.admin.key(),
+            PoolError::Unauthorized
+        );
+        
+        let old_admin = pool.secondary_admin;
+        pool.secondary_admin = Some(new_admin);
+        
+        emit!(SecondaryAdminUpdated {
+            old_admin,
+            new_admin: Some(new_admin),
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+        
         Ok(())
     }
 
@@ -316,6 +340,28 @@ pub mod nusa_harvest_pool {
         });
         Ok(())
     }
+
+    /// Update pool admin. Only current admin can call this.
+    /// This allows rotating admin or adding a co-admin.
+    pub fn update_admin(ctx: Context<UpdateAdmin>, new_admin: Pubkey) -> Result<()> {
+        let pool = &mut ctx.accounts.pool_state;
+        
+        require!(
+            pool.admin == ctx.accounts.current_admin.key(),
+            PoolError::Unauthorized
+        );
+        
+        let old_admin = pool.admin;
+        pool.admin = new_admin;
+
+        emit!(AdminUpdated {
+            old_admin,
+            new_admin,
+            updated_by: ctx.accounts.current_admin.key(),
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+        Ok(())
+    }
 }
 
 // ── Account Structs ───────────────────────────────────────────────────────────
@@ -323,6 +369,7 @@ pub mod nusa_harvest_pool {
 #[account]
 pub struct PoolState {
     pub admin: Pubkey,           // 32
+    pub secondary_admin: Option<Pubkey>, // 33 (1 byte discriminant + 32 bytes pubkey)
     pub treasury: Pubkey,        // 32
     pub total_tvl_usdc: u64,     // 8
     pub total_reserve_usdc: u64, // 8
@@ -332,7 +379,7 @@ pub struct PoolState {
     pub initialized_at: i64,     // 8
     pub bump: u8,                // 1
 }
-// discriminator=8, total=8+32+32+8+8+8+8+8+8+1 = 121
+// discriminator=8, total=8+32+33+32+8+8+8+8+8+8+1 = 154
 
 #[account]
 pub struct InvestorRecord {
@@ -350,10 +397,19 @@ pub struct InitializePool<'info> {
     #[account(
         init,
         payer = admin,
-        space = 8 + 121,
+        space = 8 + 154,
         seeds = [b"pool_state"],
         bump
     )]
+    pub pool_state: Account<'info, PoolState>,
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateSecondaryAdmin<'info> {
+    #[account(mut, seeds = [b"pool_state"], bump = pool_state.bump)]
     pub pool_state: Account<'info, PoolState>,
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -427,12 +483,34 @@ pub struct RepayLoan<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+#[derive(Accounts)]
+pub struct UpdateAdmin<'info> {
+    #[account(mut, seeds = [b"pool_state"], bump = pool_state.bump)]
+    pub pool_state: Account<'info, PoolState>,
+    pub current_admin: Signer<'info>,
+}
+
 // ── Events ────────────────────────────────────────────────────────────────────
 
 #[event]
 pub struct PoolInitialized {
     pub admin: Pubkey,
     pub treasury: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct AdminUpdated {
+    pub old_admin: Pubkey,
+    pub new_admin: Pubkey,
+    pub updated_by: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SecondaryAdminUpdated {
+    pub old_admin: Option<Pubkey>,
+    pub new_admin: Option<Pubkey>,
     pub timestamp: i64,
 }
 
