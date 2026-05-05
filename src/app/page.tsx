@@ -25,8 +25,10 @@ const FEATURES = [
     iconBg: 'bg-blue-500/15 border-blue-500/25',
     glow: 'from-blue-600/15 via-blue-800/10 to-transparent',
     border: 'hover:border-blue-500/30',
-    title: 'Global Investors Deposit',
-    desc: 'Investor global menyetor USDC ke yield pool on-chain di Solana. Transparan, non-custodial, real-time.',
+    titleId: 'Global Investors Deposit',
+    titleEn: 'Global Investors Deposit',
+    descId: 'Investor global menyetor USDC ke yield pool on-chain di Solana. Transparan, non-custodial, real-time.',
+    descEn: 'Global investors deposit USDC into Solana on-chain yield pools. Transparent, non-custodial, real-time.',
   },
   {
     step: '02',
@@ -35,8 +37,10 @@ const FEATURES = [
     iconBg: 'bg-emerald-500/15 border-emerald-500/25',
     glow: 'from-emerald-600/15 via-emerald-800/10 to-transparent',
     border: 'hover:border-emerald-500/30',
-    title: 'Yield Pool Lending',
-    desc: 'Smart contract mengalokasikan likuiditas pool ke petani terverifikasi sebagai pinjaman modal kerja.',
+    titleId: 'Yield Pool Lending',
+    titleEn: 'Yield Pool Lending',
+    descId: 'Smart contract mengalokasikan likuiditas pool ke petani terverifikasi sebagai pinjaman modal kerja.',
+    descEn: 'Smart contracts allocate pool liquidity to verified farmers as working capital loans.',
   },
   {
     step: '03',
@@ -45,23 +49,25 @@ const FEATURES = [
     iconBg: 'bg-amber-500/15 border-amber-500/25',
     glow: 'from-amber-600/15 via-amber-800/10 to-transparent',
     border: 'hover:border-amber-500/30',
-    title: 'Pencairan ke Petani',
-    desc: 'Petani Indonesia menerima modal dalam menit langsung ke wallet. Bunga kompetitif, tanpa bank.',
+    titleId: 'Pencairan ke Petani',
+    titleEn: 'Disbursement to Farmers',
+    descId: 'Petani Indonesia menerima modal dalam menit langsung ke wallet. Bunga kompetitif, tanpa bank.',
+    descEn: 'Indonesian farmers receive capital in minutes directly to their wallet. Competitive rates, no bank.',
   },
 ]
 
 const CAPABILITIES = [
-  { icon: Globe, title: 'Akses Modal Global', desc: 'Investor dari seluruh dunia dapat menyetor USDC ke pool dan mendapatkan yield dari sektor agrikultur Indonesia.' },
-  { icon: Lock, title: 'Agunan On-Chain', desc: 'Data lahan petani terdaftar on-chain sebagai agunan terverifikasi, menggantikan jaminan fisik konvensional.' },
-  { icon: Zap, title: 'Pencairan Instan', desc: 'Disbursement ke petani dalam hitungan menit melalui Solana. Tidak perlu proses bank berminggu-minggu.' },
+  { icon: Globe, titleId: 'Akses Modal Global', titleEn: 'Global Capital Access', descId: 'Investor dari seluruh dunia dapat menyetor USDC ke pool dan mendapatkan yield dari sektor agrikultur Indonesia.', descEn: 'Investors worldwide can deposit USDC into the pool and earn yield from Indonesia\'s agricultural sector.' },
+  { icon: Lock, titleId: 'Agunan On-Chain', titleEn: 'On-Chain Collateral', descId: 'Data lahan petani terdaftar on-chain sebagai agunan terverifikasi, menggantikan jaminan fisik konvensional.', descEn: 'Farmer land data is registered on-chain as verified collateral, replacing conventional physical guarantees.' },
+  { icon: Zap, titleId: 'Pencairan Instan', titleEn: 'Instant Disbursement', descId: 'Disbursement ke petani dalam hitungan menit melalui Solana. Tidak perlu proses bank berminggu-minggu.', descEn: 'Disbursement to farmers in minutes via Solana. No weeks-long bank processes needed.' },
 ]
 
 const FUSION_MODULES = [
-  { title: 'Farmer Dashboard', href: '/dashboard', desc: 'Monitoring pinjaman aktif, cicilan, dan status agunan lahan petani.', icon: Leaf },
-  { title: 'Yield Pools', href: '/pools', desc: 'Deposit USDC, pantau APY, dan kelola portofolio lending global.', icon: Zap },
-  { title: 'Market Data', href: '/market', desc: 'Feed harga SOL, USDC, dan komoditas agrikultur dari API live.', icon: Globe },
-  { title: 'Registry', href: '/register', desc: 'Onboarding petani, verifikasi lahan, dan aktivasi agunan on-chain.', icon: Shield },
-  { title: 'Admin Center', href: '/admin', desc: 'Kontrol operasional pool, monitoring pinjaman, dan audit deployment.', icon: Lock },
+  { title: 'Farmer Dashboard', href: '/dashboard', descId: 'Monitoring pinjaman aktif, cicilan, dan status agunan lahan petani.', descEn: 'Monitor active loans, installments, and farm collateral status.', icon: Leaf },
+  { title: 'Yield Pools', href: '/pools', descId: 'Deposit USDC, pantau APY, dan kelola portofolio lending global.', descEn: 'Deposit USDC, track APY, and manage global lending portfolio.', icon: Zap },
+  { title: 'Market Data', href: '/market', descId: 'Feed harga SOL, USDC, dan komoditas agrikultur dari API live.', descEn: 'Live price feed for SOL, USDC, and agricultural commodities.', icon: Globe },
+  { title: 'Registry', href: '/register', descId: 'Onboarding petani, verifikasi lahan, dan aktivasi agunan on-chain.', descEn: 'Farmer onboarding, land verification, and on-chain collateral activation.', icon: Shield },
+  { title: 'Admin Center', href: '/admin', descId: 'Kontrol operasional pool, monitoring pinjaman, dan audit deployment.', descEn: 'Pool operations control, loan monitoring, and deployment audit.', icon: Lock },
 ]
 
 /* Animated Counter */
@@ -220,8 +226,8 @@ export default function HomePage() {
       <section className="relative z-10 max-w-7xl mx-auto px-6 pb-20">
         <motion.div {...FV()} className="text-center max-w-3xl mx-auto mb-10">
           <p className="data-badge data-badge-inactive mx-auto w-fit mb-4">Design Fusion</p>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">Ekosistem Lending Agrikultur</h2>
-          <p className="text-slate-400">Semua modul — dari deposit investor hingga disbursement petani — terintegrasi dalam satu platform on-chain yang transparan.</p>
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">{t('Ekosistem Lending Agrikultur', 'Agricultural Lending Ecosystem')}</h2>
+          <p className="text-slate-400">{t('Semua modul — dari deposit investor hingga disbursement petani — terintegrasi dalam satu platform on-chain yang transparan.', 'All modules — from investor deposits to farmer disbursements — integrated in one transparent on-chain platform.')}</p>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -233,9 +239,9 @@ export default function HomePage() {
                   <Icon size={20} />
                 </div>
                 <h3 className="text-white font-bold text-lg mb-2">{module.title}</h3>
-                <p className="text-slate-400 text-sm mb-5 leading-relaxed">{module.desc}</p>
+                <p className="text-slate-400 text-sm mb-5 leading-relaxed">{t(module.descId, module.descEn)}</p>
                 <Link href={module.href} className="inline-flex items-center gap-2 text-sm font-bold text-emerald-300 hover:text-emerald-200">
-                  Buka Modul <ArrowUpRight size={14} />
+                  {t('Buka Modul', 'Open Module')} <ArrowUpRight size={14} />
                 </Link>
               </motion.div>
             )
@@ -248,16 +254,16 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-grid-dark bg-[size:48px_48px] opacity-40 bg-grid-fade pointer-events-none" />
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <motion.div {...FV()} className="text-center max-w-3xl mx-auto mb-16">
-            <p className="data-badge data-badge-inactive mx-auto w-fit mb-4">Cara Kerja</p>
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-5 tracking-tight">Cara Kerja Lending On-Chain</h2>
-            <p className="text-slate-400 leading-relaxed">Dari dompet investor global ke tangan petani Indonesia — tanpa bank, tanpa perantara, dieksekusi smart contract.</p>
+            <p className="data-badge data-badge-inactive mx-auto w-fit mb-4">{t('Cara Kerja', 'How It Works')}</p>
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-5 tracking-tight">{t('Cara Kerja Lending On-Chain', 'How On-Chain Lending Works')}</h2>
+            <p className="text-slate-400 leading-relaxed">{t('Dari dompet investor global ke tangan petani Indonesia — tanpa bank, tanpa perantara, dieksekusi smart contract.', 'From global investor wallets to Indonesian farmer hands — no banks, no intermediaries, executed by smart contract.')}</p>
           </motion.div>
 
           <div className="grid lg:grid-cols-3 gap-6">
             {FEATURES.map((feature, index) => {
               const Icon = feature.icon
               return (
-                <motion.div key={feature.title} {...FV(index * 0.12)} className={`group relative rounded-2xl border border-slate-800 ${feature.border} transition-colors duration-400 overflow-hidden hover-lift`}>
+                <motion.div key={feature.titleId} {...FV(index * 0.12)} className={`group relative rounded-2xl border border-slate-800 ${feature.border} transition-colors duration-400 overflow-hidden hover-lift`}>
                   <div className={`absolute -right-12 -top-12 w-48 h-48 bg-gradient-to-br ${feature.glow} blur-[50px] rounded-full group-hover:scale-150 transition-transform duration-700`} />
                   <div className="relative z-10 p-7 bg-gradient-card h-full">
                     <div className="flex items-center gap-4 mb-6">
@@ -266,8 +272,8 @@ export default function HomePage() {
                         <Icon className={feature.iconColor} size={26} />
                       </div>
                     </div>
-                    <h3 className="text-lg font-bold text-white mb-3">{feature.title}</h3>
-                    <p className="text-slate-400 text-sm leading-relaxed">{feature.desc}</p>
+                    <h3 className="text-lg font-bold text-white mb-3">{t(feature.titleId, feature.titleEn)}</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed">{t(feature.descId, feature.descEn)}</p>
                   </div>
                 </motion.div>
               )
@@ -281,9 +287,9 @@ export default function HomePage() {
         <div className="grid md:grid-cols-2 gap-14 items-center">
           <motion.div {...FV()} className="space-y-8">
             <div>
-              <p className="data-badge data-badge-inactive w-fit mb-4">Teknologi</p>
-              <h2 className="text-4xl font-black text-white leading-tight mb-4">Modal Global, Dampak Lokal</h2>
-              <p className="text-slate-400 leading-relaxed">Yield pool on-chain menjembatani likuiditas global ke sektor agrikultur Indonesia — transparan, dapat diaudit, real yield.</p>
+              <p className="data-badge data-badge-inactive w-fit mb-4">{t('Teknologi', 'Technology')}</p>
+              <h2 className="text-4xl font-black text-white leading-tight mb-4">{t('Modal Global, Dampak Lokal', 'Global Capital, Local Impact')}</h2>
+              <p className="text-slate-400 leading-relaxed">{t('Yield pool on-chain menjembatani likuiditas global ke sektor agrikultur Indonesia — transparan, dapat diaudit, real yield.', 'On-chain yield pools bridge global liquidity to Indonesia\'s agricultural sector — transparent, auditable, real yield.')}</p>
             </div>
             <ul className="space-y-4">
               {CAPABILITIES.map((capability, index) => {
@@ -294,8 +300,8 @@ export default function HomePage() {
                       <Icon className="text-emerald-400" size={15} />
                     </div>
                     <div>
-                      <h4 className="text-white font-semibold text-sm">{capability.title}</h4>
-                      <p className="text-slate-400 text-sm mt-0.5">{capability.desc}</p>
+                      <h4 className="text-white font-semibold text-sm">{t(capability.titleId, capability.titleEn)}</h4>
+                      <p className="text-slate-400 text-sm mt-0.5">{t(capability.descId, capability.descEn)}</p>
                     </div>
                   </motion.li>
                 )
@@ -312,7 +318,7 @@ export default function HomePage() {
                   <div className="flex items-center gap-2">
                     <div className={`status-dot-live ${programReady === null ? 'bg-slate-500' : programReady ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                     <span className="text-white font-bold text-sm">
-                      {programReady === null ? 'Memeriksa status...' : programReady ? 'Live di Devnet' : 'Deploy In-Progress'}
+                      {programReady === null ? t('Memeriksa status...', 'Checking status...') : programReady ? t('Live di Devnet', 'Live on Devnet') : 'Deploy In-Progress'}
                     </span>
                   </div>
                 </div>
@@ -344,7 +350,7 @@ export default function HomePage() {
               ))}
 
               <a href={`https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`} target="_blank" rel="noreferrer" className="btn-ghost w-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-slate-300 rounded-xl">
-                Lihat di Solana Explorer <ArrowUpRight size={15} />
+                {t('Lihat di Solana Explorer', 'View on Solana Explorer')} <ArrowUpRight size={15} />
               </a>
             </div>
           </motion.div>

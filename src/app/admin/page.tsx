@@ -11,6 +11,7 @@ import { getApiUrl } from '../../utils/api'
 import { PROGRAM_ID_STR } from '../../utils/constants'
 import { useWallet } from '../../providers/WalletProvider'
 import { fetchWithTimeout } from '../../utils/timeout'
+import { useLanguage } from '../../contexts/LanguageContext'
 
 const ADMIN_WALLETS = [
   'ETcQvsQek2w9feLfsqoe4AypCWfnrSwQiv3djqocaP2m', // Primary admin (treasury)
@@ -77,6 +78,7 @@ function getAdminSessionKey(wallet: string): string {
 export default function AdminPage() {
   const router = useRouter()
   const { publicKey, connected, signMessage } = useWallet()
+  const { t } = useLanguage()
   const isAdmin = connected && publicKey ? ADMIN_WALLETS.includes(publicKey) : false
   const deniedRedirectRef = useRef(false)
 
@@ -209,19 +211,24 @@ export default function AdminPage() {
     try {
       const message = `NusaHarvest Admin Access|${publicKey}|${Date.now()}`
       const encoded = new TextEncoder().encode(message)
-      const signed = await signMessage(encoded)
-      if (!signed || signed.length === 0) throw new Error('Tanda tangan wallet tidak valid')
+
+      // BUG-05: timeout guard so it never hangs forever if wallet doesn't respond
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(t('Wallet tidak merespons dalam 15 detik. Coba lagi.', 'Wallet did not respond within 15 seconds. Try again.'))), 15_000)
+      )
+      const signed = await Promise.race([signMessage(encoded), timeout])
+      if (!signed || signed.length === 0) throw new Error(t('Tanda tangan wallet tidak valid', 'Invalid wallet signature'))
 
       localStorage.setItem(getAdminSessionKey(publicKey), String(Date.now()))
       setSignatureVerified(true)
-      toast.success('Verifikasi admin berhasil')
+      toast.success(t('Verifikasi admin berhasil', 'Admin verification successful'))
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Verifikasi tanda tangan gagal'
+      const msg = error instanceof Error ? error.message : t('Verifikasi tanda tangan gagal', 'Signature verification failed')
       toast.error(msg)
     } finally {
       setVerifyingSignature(false)
     }
-  }, [isAdmin, publicKey, signMessage, verifyingSignature])
+  }, [isAdmin, publicKey, signMessage, verifyingSignature, t])
 
   const health = useMemo(() => {
     if (metrics.loading) return 'SYNCING'
@@ -234,7 +241,7 @@ export default function AdminPage() {
         <div className="text-center max-w-xs">
           <Shield size={40} className="text-slate-600 mx-auto mb-4" />
           <h2 className="text-xl font-black text-white mb-2">Admin Center</h2>
-          <p className="font-mono text-[12px] text-slate-500 mb-6">Hubungkan wallet admin untuk melanjutkan.</p>
+          <p className="font-mono text-[12px] text-slate-500 mb-6">{t('Hubungkan wallet admin untuk melanjutkan.', 'Connect admin wallet to continue.')}</p>
           <ConnectWalletButton className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm transition-colors" />
         </div>
       </div>
@@ -246,8 +253,8 @@ export default function AdminPage() {
       <div className="flex min-h-screen bg-[#0A0F0A] pt-[52px] items-center justify-center">
         <div className="text-center">
           <Shield size={40} className="text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-black text-white mb-2">Akses Ditolak</h2>
-          <p className="font-mono text-[12px] text-slate-500">Mengalihkan ke halaman utama...</p>
+          <h2 className="text-xl font-black text-white mb-2">{t('Akses Ditolak', 'Access Denied')}</h2>
+          <p className="font-mono text-[12px] text-slate-500">{t('Mengalihkan ke halaman utama...', 'Redirecting to home...')}</p>
         </div>
       </div>
     )
@@ -258,9 +265,9 @@ export default function AdminPage() {
       <div className="flex min-h-screen bg-[#0A0F0A] pt-[52px] items-center justify-center px-6">
         <div className="max-w-md w-full rounded-2xl border border-emerald-900/40 bg-emerald-950/10 p-6 text-center">
           <Shield size={32} className="text-emerald-400 mx-auto mb-3" />
-          <h2 className="text-xl font-black text-white mb-2">Verifikasi Admin</h2>
+          <h2 className="text-xl font-black text-white mb-2">{t('Verifikasi Admin', 'Admin Verification')}</h2>
           <p className="text-sm text-slate-400 mb-1">
-            Tanda tangani pesan wallet untuk membuka Admin Center.
+            {t('Tanda tangani pesan wallet untuk membuka Admin Center.', 'Sign a wallet message to unlock Admin Center.')}
           </p>
           <p className="text-[11px] font-mono text-slate-600 mb-5">
             {publicKey?.slice(0, 8)}…{publicKey?.slice(-6)}
@@ -271,7 +278,7 @@ export default function AdminPage() {
             disabled={verifyingSignature}
             className="w-full rounded-xl px-4 py-3 font-bold text-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 bg-emerald-500 hover:bg-emerald-400 text-emerald-950"
           >
-            {verifyingSignature ? 'Memverifikasi...' : 'Verifikasi Tanda Tangan'}
+            {verifyingSignature ? t('Memverifikasi...', 'Verifying...') : t('Verifikasi Tanda Tangan', 'Sign & Verify')}
           </button>
         </div>
       </div>

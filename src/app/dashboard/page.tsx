@@ -624,25 +624,36 @@ export default function DashboardPage() {
                         {t('Total', 'Total')}: {totalRain7d.toFixed(1)} mm
                       </span>
                     </div>
-                    <div className="flex items-end gap-2 h-32">
-                      {weather.daily.map((d, i) => (
-                        <div key={d.date} className="flex-1 flex flex-col items-center justify-end relative group">
-                          <span className="absolute -top-6 text-[10px] font-mono text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-blue-900/60 px-1.5 py-0.5 rounded backdrop-blur">
-                            {d.rainfallMm}mm
-                          </span>
-                          <motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: `${Math.max(12, (d.rainfallMm / maxRain) * 100)}%` }}
-                            transition={{ delay: 0.2 + (i * 0.05), type: 'spring', stiffness: 120, damping: 14 }}
-                            className="w-full max-w-[40px] rounded-t-lg relative overflow-hidden group-hover:brightness-125 transition-all duration-200"
-                            style={{ background: 'linear-gradient(to top, rgba(30,58,138,0.6), rgba(59,130,246,0.85))', boxShadow: '0 -2px 8px rgba(59,130,246,0.3)' }}
-                          >
-                            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-                          </motion.div>
-                          <span className="text-[10px] text-slate-500 mt-3 font-medium">{d.date}</span>
-                        </div>
-                      ))}
-                    </div>
+                    {weather.daily.length === 0 ? (
+                      <div className="flex items-end gap-2 h-32">
+                        {[...Array(7)].map((_, i) => (
+                          <div key={i} className="flex-1 flex flex-col items-center justify-end">
+                            <div className="w-full max-w-[40px] rounded-t-lg bg-slate-800/40 animate-pulse" style={{ height: 8 + Math.random() * 40 }} />
+                            <span className="text-[10px] text-slate-700 mt-3">--/--</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-end gap-2 h-32">
+                        {weather.daily.map((d, i) => (
+                          <div key={d.date} className="flex-1 flex flex-col items-center justify-end relative group">
+                            <span className="absolute -top-6 text-[10px] font-mono text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-blue-900/60 px-1.5 py-0.5 rounded backdrop-blur">
+                              {d.rainfallMm}mm
+                            </span>
+                            <motion.div
+                              initial={{ height: 0 }}
+                              animate={{ height: Math.max(6, (d.rainfallMm / maxRain) * 96) }}
+                              transition={{ delay: 0.15 + (i * 0.05), type: 'spring', stiffness: 120, damping: 14 }}
+                              className="w-full max-w-[40px] rounded-t-lg relative overflow-hidden group-hover:brightness-125 transition-all duration-200"
+                              style={{ background: 'linear-gradient(to top, rgba(30,58,138,0.6), rgba(59,130,246,0.85))', boxShadow: '0 -2px 8px rgba(59,130,246,0.3)' }}
+                            >
+                              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+                            </motion.div>
+                            <span className="text-[10px] text-slate-500 mt-3 font-medium">{d.date}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </motion.div>
 
