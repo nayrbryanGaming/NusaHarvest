@@ -201,7 +201,7 @@ export async function fetchPoolStateMetrics(): Promise<{ totalTvl: string; activ
     
     if (!accountInfo || !accountInfo.data) {
       return {
-        totalTvl: '$0 USDC (Loading...)',
+        totalTvl: '$0 USDC (Devnet)',
         activePolicies: 0
       }
     }
