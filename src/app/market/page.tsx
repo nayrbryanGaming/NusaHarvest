@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   TrendingUp, TrendingDown, RefreshCw, Globe,
@@ -43,24 +43,23 @@ export default function MarketPage() {
   const [syncing, setSyncing]   = useState(true)
   const [lastUpdate, setLastUpdate] = useState('')
 
-  const fetchPrices = async () => {
+  const fetchPrices = useCallback(async () => {
     setLoading(true)
     const ts = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false })
 
     try {
-      // 1. CoinGecko
       const cgRes  = await fetchWithTimeout('https://api.coingecko.com/api/v3/simple/price?ids=solana,usd-coin&vs_currencies=idr&include_24hr_change=true')
-      const cgJson = await cgRes.json()
+      const cgJson = await cgRes.json() as Record<string, Record<string, number>>
 
-      // 2. Backend commodity (optional)
-      let commData: any[] = []
+      type CommodityItem = { id?: string; commodity?: string; symbol?: string; change24h?: number; priceIdr?: number }
+      let commData: CommodityItem[] = []
       try {
         const url = getApiUrl('/api/market/commodities')
         if (url) {
           const r = await fetchWithTimeout(url)
-          if (r.ok) { const j = await r.json(); if (j.success) commData = j.data }
+          if (r.ok) { const j = await r.json() as { success?: boolean; data?: CommodityItem[] }; if (j.success) commData = j.data ?? [] }
         }
-      } catch { /* ignore */ }
+      } catch { /* backend commodity is optional */ }
 
       setData(prev => prev.map(item => {
         if (item.id === 'solana') {
@@ -74,13 +73,13 @@ export default function MarketPage() {
           return { ...item, price: `Rp ${fmt(priceIdr)}`, change: `${ch>=0?'+':''}${ch.toFixed(2)}%`, up: ch>=0 }
         }
         if (item.id === 'padi') {
-          const live = commData?.find((c: any) => c.id==='padi'||c.commodity==='RICE'||c.symbol==='RICE')
+          const live = commData.find(c => c.id==='padi' || c.commodity==='RICE' || c.symbol==='RICE')
           const src  = live ?? FALLBACK_PRICES.padi
           const ch   = typeof src.change24h === 'number' ? src.change24h : FALLBACK_PRICES.padi.change24h
           return { ...item, price: `Rp ${fmt(Number(src.priceIdr))}`, change: `${ch>=0?'+':''}${ch.toFixed(2)}%`, up: ch>=0 }
         }
         if (item.id === 'kopi') {
-          const live = commData?.find((c: any) => c.id==='kopi'||c.commodity==='COFFEE'||c.symbol==='COFFEE')
+          const live = commData.find(c => c.id==='kopi' || c.commodity==='COFFEE' || c.symbol==='COFFEE')
           const src  = live ?? FALLBACK_PRICES.kopi
           const ch   = typeof src.change24h === 'number' ? src.change24h : FALLBACK_PRICES.kopi.change24h
           return { ...item, price: `Rp ${fmt(Number(src.priceIdr))}`, change: `${ch>=0?'+':''}${ch.toFixed(2)}%`, up: ch>=0 }
@@ -89,7 +88,6 @@ export default function MarketPage() {
       }))
       setLastUpdate(ts)
     } catch {
-      // Full fallback — still show data, never N/A
       setData(prev => prev.map(item => {
         const fallback = FALLBACK_PRICES[item.id]
         if (!fallback) return item
@@ -97,7 +95,7 @@ export default function MarketPage() {
           ...item,
           price: `Rp ${fmt(fallback.priceIdr)}`,
           change: `${fallback.change24h >= 0 ? '+' : ''}${fallback.change24h.toFixed(2)}%`,
-          up: fallback.change24h >= 0
+          up: fallback.change24h >= 0,
         }
       }))
       setLastUpdate(ts + ' (offline cache)')
@@ -105,13 +103,13 @@ export default function MarketPage() {
       setLoading(false)
       setSyncing(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    fetchPrices()
-    const iv = setInterval(fetchPrices, 60000)
+    void fetchPrices()
+    const iv = setInterval(() => { void fetchPrices() }, 60_000)
     return () => clearInterval(iv)
-  }, [])
+  }, [fetchPrices])
 
   const topAccent: Record<string,string> = {
     solana:   'from-purple-500/0 via-purple-400 to-purple-500/0',
@@ -171,7 +169,7 @@ export default function MarketPage() {
               )}
               <button
                 type="button"
-                onClick={fetchPrices}
+                onClick={() => void fetchPrices()}
                 className="flex items-center gap-2 px-4 py-2 bg-white/[0.05] border border-white/[0.08] rounded-[4px] hover:bg-white/10 font-mono text-[10.5px] text-slate-300 transition-colors"
               >
                 <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
