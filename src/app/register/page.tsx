@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Leaf, MapPin, Compass, Shield, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react'
 import { useWallet, ConnectWalletButton } from '../../providers/WalletProvider'
-import Navbar from '../../components/Navbar'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { getApiUrl } from '../../utils/api'
@@ -76,11 +75,9 @@ export default function RegisterFarmPage() {
 
   return (
     <main className="min-h-screen bg-[#02060c] relative overflow-hidden text-slate-100 pb-20">
-      <div className="absolute top-0 right-0 w-[800px] h-[600px] bg-emerald-500/5 blur-[120px] -z-10 rounded-full" />
-      
-      <Navbar />
+      <div className="absolute top-0 right-0 w-[800px] h-[600px] bg-emerald-500/5 blur-[120px] -z-10 rounded-full pointer-events-none" />
 
-      <div className="pt-32 px-6 max-w-4xl mx-auto">
+      <div className="pt-20 px-6 max-w-4xl mx-auto">
         <header className="mb-12 text-center">
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
              <Leaf className="text-emerald-400" size={16} />

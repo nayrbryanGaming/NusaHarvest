@@ -61,7 +61,6 @@ const FUSION_MODULES = [
   { title: 'Yield Pools', href: '/pools', desc: 'Deposit USDC, pantau APY, dan kelola portofolio lending global.', icon: Zap },
   { title: 'Market Data', href: '/market', desc: 'Feed harga SOL, USDC, dan komoditas agrikultur dari API live.', icon: Globe },
   { title: 'Registry', href: '/register', desc: 'Onboarding petani, verifikasi lahan, dan aktivasi agunan on-chain.', icon: Shield },
-  { title: 'SOLQ QRIS', href: '/solq', desc: 'Parser EMVCo QRIS + payment intent non-custodial untuk disbursement.', icon: Activity },
   { title: 'Admin Center', href: '/admin', desc: 'Kontrol operasional pool, monitoring pinjaman, dan audit deployment.', icon: Lock },
 ]
 
@@ -156,7 +155,7 @@ export default function HomePage() {
 
       {/* Hero */}
       <section className="relative pt-16 pb-16 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div className="absolute inset-0 bg-grid-dark bg-[size:48px_48px] opacity-60 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_50%,transparent_100%)]" />
+        <div className="absolute inset-0 bg-grid-dark bg-[size:48px_48px] opacity-60 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_50%,transparent_100%)] pointer-events-none" />
 
         <motion.div {...FV(0)} className="relative inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-teal-500/30 bg-teal-500/8 text-teal-300 text-[11px] font-bold tracking-widest uppercase mb-8 backdrop-blur-sm shadow-teal-sm">
           <span className="relative flex h-2 w-2">
@@ -246,7 +245,7 @@ export default function HomePage() {
 
       {/* How It Works */}
       <section className="relative py-24 bg-[#02050a]">
-        <div className="absolute inset-0 bg-grid-dark bg-[size:48px_48px] opacity-40 bg-grid-fade" />
+        <div className="absolute inset-0 bg-grid-dark bg-[size:48px_48px] opacity-40 bg-grid-fade pointer-events-none" />
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <motion.div {...FV()} className="text-center max-w-3xl mx-auto mb-16">
             <p className="data-badge data-badge-inactive mx-auto w-fit mb-4">Cara Kerja</p>
