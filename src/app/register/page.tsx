@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Leaf, MapPin, Compass, Shield, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react'
+import { Leaf, Compass, Shield, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react'
 import { useWallet, ConnectWalletButton } from '../../providers/WalletProvider'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { getApiUrl } from '../../utils/api'
+import TxHistoryBar from '../../components/TxHistoryBar'
 
 export default function RegisterFarmPage() {
   const { connected, publicKey } = useWallet()
@@ -179,13 +180,18 @@ export default function RegisterFarmPage() {
               </div>
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="w-full py-8 rounded-3xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-emerald-950 font-black text-sm uppercase tracking-[0.4em] transition-all shadow-[0_0_50px_rgba(16,185,129,0.3)] flex items-center justify-center gap-4 disabled:opacity-50"
             >
               {loading ? <Loader2 className="animate-spin" /> : <><ArrowRight /> Selesaikan Pendaftaran</>}
             </button>
+
+            <TxHistoryBar
+              walletAddress={publicKey ?? ''}
+              label="Riwayat Transaksi Wallet"
+            />
           </motion.form>
         )}
 

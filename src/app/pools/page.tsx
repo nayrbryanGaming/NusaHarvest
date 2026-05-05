@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { AlertTriangle, ArrowUpRight, Briefcase, Loader2, RefreshCw, Shield, TrendingUp, Zap } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Sidebar from '../../components/Sidebar'
+import TxHistoryBar from '../../components/TxHistoryBar'
 import { useWallet } from '../../providers/WalletProvider'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { getApiUrl } from '../../utils/api'
@@ -52,6 +53,7 @@ export default function PoolsPage() {
   const [stakeAmount, setStakeAmount] = useState('')
   const [staking, setStaking] = useState(false)
   const [lastSignature, setLastSignature] = useState<string | null>(null)
+  const [txRefreshTrigger, setTxRefreshTrigger] = useState(0)
 
   const fetchStats = useCallback(async () => {
     setStats((prev) => ({ ...prev, loading: true }))
@@ -179,6 +181,7 @@ export default function PoolsPage() {
 
       setLastSignature(signature)
       setStakeAmount('')
+      setTxRefreshTrigger((n) => n + 1)
       toast.dismiss(loadingToast)
       toast.success(t('Deposit berhasil dan tercatat on-chain', 'Deposit successful and recorded on-chain'))
       await fetchStats()
@@ -291,31 +294,58 @@ export default function PoolsPage() {
                       t('Deposit Sekarang', 'Deposit Now')
                     )}
                   </button>
+
+                  {/* TX History — muncul setelah deposit atau saat wallet connect */}
+                  <TxHistoryBar
+                    walletAddress={publicKey ?? ''}
+                    refreshTrigger={txRefreshTrigger}
+                    label={t('Riwayat Deposit', 'Deposit History')}
+                  />
                 </div>
               )}
             </div>
 
-            <div className="glass-panel p-6 rounded-3xl">
-              <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">On-chain Proof</h3>
-              <a
-                href={`https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 font-bold text-sm"
-              >
-                Program Explorer <ArrowUpRight size={14} />
-              </a>
+            <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4">
+              <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">On-chain Proof</h3>
 
-              {lastSignature && (
-                <div className="mt-4 text-xs text-slate-300 break-all">
-                  {t('Signature terakhir', 'Last signature')}:
-                  <a href={`https://explorer.solana.com/tx/${lastSignature}?cluster=devnet`} target="_blank" rel="noreferrer" className="block mt-1 text-emerald-300 underline underline-offset-2">
-                    {lastSignature}
+              <div className="space-y-2 font-mono text-[11px]">
+                <div className="flex justify-between items-center py-2 border-b border-white/[0.04]">
+                  <span className="text-slate-500">Network</span>
+                  <span className="text-indigo-300 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse" /> Solana Devnet
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/[0.04]">
+                  <span className="text-slate-500">Program ID</span>
+                  <a
+                    href={`https://explorer.solana.com/address/${PROGRAM_ID_STR}?cluster=devnet`}
+                    target="_blank" rel="noreferrer"
+                    className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2 flex items-center gap-1"
+                  >
+                    {PROGRAM_ID_STR.slice(0, 8)}…{PROGRAM_ID_STR.slice(-5)} <ArrowUpRight size={10} />
                   </a>
                 </div>
-              )}
+                <div className="flex justify-between items-center py-2 border-b border-white/[0.04]">
+                  <span className="text-slate-500">Pool Status</span>
+                  <span className={stats.backendConnected ? 'text-emerald-400' : 'text-amber-400'}>
+                    {stats.loading ? 'Syncing…' : stats.backendConnected ? 'Live' : 'Offline'}
+                  </span>
+                </div>
+                {lastSignature && (
+                  <div className="py-2">
+                    <span className="text-slate-500 block mb-1">{t('Deposit Terakhir', 'Last Deposit')}</span>
+                    <a
+                      href={`https://explorer.solana.com/tx/${lastSignature}?cluster=devnet`}
+                      target="_blank" rel="noreferrer"
+                      className="text-emerald-300 hover:text-emerald-200 underline underline-offset-2 break-all"
+                    >
+                      {lastSignature.slice(0, 12)}…{lastSignature.slice(-8)}
+                    </a>
+                  </div>
+                )}
+              </div>
 
-              <p className="text-[11px] text-slate-500 mt-6">Last updated: {stats.updatedAt}</p>
+              <p className="text-[10px] text-slate-600 font-mono">Sync: {stats.updatedAt}</p>
             </div>
           </section>
         </div>

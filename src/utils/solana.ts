@@ -157,22 +157,26 @@ export async function createPolicyTransaction(
   }
 }
 
-export async function getRecentTransactions(address: string) {
+export async function getRecentTransactions(address: string, limit = 7) {
   const connection = new Connection(RPC_URL, 'confirmed')
-  const pubkey = new PublicKey(address)
-  
   try {
-    const signatures = await connection.getSignaturesForAddress(pubkey, { limit: 5 })
+    const pubkey = new PublicKey(address)
+    const signatures = await withTimeout(
+      connection.getSignaturesForAddress(pubkey, { limit }),
+      6_000,
+      'get-recent-txs'
+    )
     return signatures.map((s, i) => ({
       id: i,
-      signature: s.signature.slice(0, 8) + '...',
+      signature: `${s.signature.slice(0, 10)}…${s.signature.slice(-6)}`,
       fullSignature: s.signature,
       slot: s.slot,
-      time: s.blockTime ? new Date(s.blockTime * 1000).toLocaleTimeString() : 'Pending',
-      status: s.err ? 'Failed' : 'Success'
+      time: s.blockTime
+        ? new Date(s.blockTime * 1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        : 'Pending',
+      status: s.err ? 'Failed' : 'Success',
     }))
-  } catch (err) {
-    console.error('Error fetching transactions:', err)
+  } catch {
     return []
   }
 }

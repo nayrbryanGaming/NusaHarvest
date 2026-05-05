@@ -8,6 +8,7 @@ import { useWallet } from '../../providers/WalletProvider'
 import { useLanguage } from '../../contexts/LanguageContext'
 import toast from 'react-hot-toast'
 import Sidebar from '../../components/Sidebar'
+import TxHistoryBar from '../../components/TxHistoryBar'
 import { useSim } from '../../contexts/SimulationContext'
 import { getApiUrl } from '../../utils/api'
 import { PROGRAM_ID_STR, RPC_URL } from '../../utils/constants'
@@ -159,6 +160,7 @@ export default function DashboardPage() {
   const [programReady, setProgramReady] = useState<boolean | null>(null)
   const [droughtSimStep, setDroughtSimStep] = useState<0|1|2|3|4>(0)
   const [simPayout, setSimPayout] = useState(0)
+  const [txRefreshTrigger, setTxRefreshTrigger] = useState(0)
 
   const fetchLiveData = async () => {
     setLoading(true)
@@ -401,6 +403,7 @@ export default function DashboardPage() {
       setPremiumUsdc(snapshot.premiumPaidUsdc)
       setMaxPayoutUsdc(snapshot.maxPayoutUsdc)
       setCoverageLabel(formatCoveragePeriod(snapshot.coverageStartDate, snapshot.coverageEndDate))
+      setTxRefreshTrigger((n) => n + 1)
       toast.dismiss(loadingToast)
       if (backendSyncWarning) {
         toast.success(t('Transaksi on-chain berhasil. Backend sedang menyusul.', 'On-chain transaction successful. Backend syncing.'), { icon: '✅' })
@@ -437,6 +440,7 @@ export default function DashboardPage() {
     setPremiumUsdc(farmerPays)
     setMaxPayoutUsdc(LOAN_ORDER.payoutPerHectareUsdc * selectedHectares)
     setCoverageLabel(formatCoveragePeriod(now.toISOString(), end.toISOString()))
+    setTxRefreshTrigger((n) => n + 1)
     toast.dismiss(loadingToast)
     toast.success(t(`Demo pinjaman ${demoId} aktif! Biaya efektif $${farmerPays.toFixed(2)} USDC (50% subsidi protokol).`, `Demo loan ${demoId} active! Effective fee $${farmerPays.toFixed(2)} USDC (50% protocol subsidy).`), { icon: '💰', duration: 6000 })
     setBuyingInsurance(false)
@@ -961,6 +965,14 @@ export default function DashboardPage() {
                         <p className="text-[10px] text-center text-slate-500 font-mono">
                           {t('Mode Simulasi Devnet · Klik untuk demo end-to-end', 'Devnet Simulation Mode · Click for end-to-end demo')}
                         </p>
+                      )}
+
+                      {connected && (
+                        <TxHistoryBar
+                          walletAddress={publicKey ?? ''}
+                          refreshTrigger={txRefreshTrigger}
+                          label={t('Riwayat Transaksi Asuransi', 'Insurance Transaction History')}
+                        />
                       )}
                     </div>
                   )}
